@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>山線工作室｜單頁展示範例</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.65 system-ui, sans-serif; color: #222e24; background: #f6f4eb; }
+  header, main { width: min(100% - 2rem, 58rem); margin-inline: auto; }
+  header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; padding-block: 1rem; }
+  header svg { width: 34px; height: 34px; }
+  a { color: inherit; }
+  nav a + a { margin-inline-start: 1rem; }
+  button { display: none; padding: .5rem .75rem; font: inherit; cursor: pointer; }
+  section { padding-block: 3rem; }
+  .hero { background: #e8eddf; border-radius: 1rem; padding: clamp(1.25rem, 5vw, 4rem); }
+  h1 { font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1.15; margin: 0 0 1rem; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  article { border: 1px solid #bec8b9; border-radius: .5rem; padding: 1rem; }
+  @media (min-width: 641px) { nav[hidden] { display: block !important; } }
+  @media (max-width: 640px) {
+    button { display: block; }
+    nav { display: none; flex-basis: 100%; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+<header>
+  <a href="#intro" aria-label="山線工作室">
+    <svg class="site-logo" role="img" aria-label="山線工作室" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="20" fill="#314936"/>
+      <path d="M8 28 18 13l5 8 4-6 6 13Z" fill="#edf0df"/>
+    </svg>
+  </a>
+  <button type="button" aria-controls="main-nav" aria-expanded="false">選單</button>
+  <nav id="main-nav" aria-label="主導覽"><a href="#intro">介紹</a><a href="#projects">作品</a></nav>
+</header>
+<main>
+  <section class="hero" id="intro">
+    <h1>山線工作室</h1>
+    <p>以簡單的圖形與文字，示範跨裝置預覽與離線展示。</p>
+    <a href="#projects">往下看作品</a>
+  </section>
+  <section id="projects">
+    <h2>作品</h2>
+    <div class="cards">
+      <article><h3>森林裡的路</h3><p>用兩欄版面呈現短篇介紹。</p></article>
+      <article><h3>山腳下的屋</h3><p>手機寬度時，兩張卡片會改為上下排列。</p></article>
+    </div>
+  </section>
+</main>

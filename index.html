@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>單頁展示轉換工具</title>
+<style>
+:root{font:15px/1.5 system-ui,sans-serif;color:#231f20;background:#f6f5f2}*{box-sizing:border-box}
+body{margin:0}header{padding:24px max(24px,4vw);background:#242321;color:white}h1{font-size:24px;margin:0}
+.app-header{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px 12px}
+.app-controls{display:flex;align-items:center;gap:4px;margin-inline-start:auto}
+.app-controls .header-action{display:inline-flex;align-items:center;gap:6px;justify-content:center;min-height:44px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:white;font:inherit;white-space:nowrap;text-decoration:none;cursor:pointer}
+.app-controls .header-action svg{width:18px;height:18px}
+#import-toggle{position:relative;margin-inline-end:8px}
+#import-toggle::after{content:'';position:absolute;inset-inline-end:-6px;inset-block:13px;width:1px;background:#686259;pointer-events:none}
+.app-controls .header-action[aria-disabled=true]{opacity:.4;cursor:default}
+.app-controls .header-action:not([aria-disabled=true]):is(:hover,:focus-visible){background:#46423e}
+.app-controls .header-action:focus-visible{outline:2px solid white;outline-offset:2px}
+.app-controls [role=tooltip]{border:1px solid #686259}
+@media(max-width:460px){
+  .app-header{padding:16px max(16px,4vw)}
+  .app-header h1{font-size:18px}
+  .app-controls{gap:2px}
+  #import-toggle{margin-inline-end:6px}
+  #import-toggle::after{inset-inline-end:-5px}
+  .app-controls .header-action{padding-inline:6px;gap:4px}
+  .app-controls .header-action svg{width:16px;height:16px}
+}
+main{padding:24px max(16px,4vw)}h2{font-size:18px;margin:0 0 10px}p{margin:0 0 12px}
+form,.panel{background:white;padding:20px;border:1px solid #d9d5ce;margin-bottom:16px;max-width:100%}
+.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px}
+.import-panel{max-width:540px;margin:0 auto 16px;padding:clamp(32px,5vw,40px) clamp(24px,5vw,40px);text-align:center}
+.import-panel > h2{margin-bottom:28px}
+#import{margin:0;padding:0;border:0}
+#import [hidden]{display:none!important}
+.import-inputs,.import-sources,.import-options{display:grid;grid-template-columns:minmax(0,1fr)}
+.import-inputs{gap:12px}
+.import-sources{gap:20px}
+.import-modes{margin:0;padding:0;border:0;min-width:0}
+.import-modes .control-toggle,.parse-button{width:min(100%,312px);margin-inline:auto}
+.import-modes .control-toggle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.import-modes label{position:relative;display:grid;place-items:center;min-height:44px;padding:6px 2px;border:1px solid #b6b0a7;cursor:pointer}
+.import-modes label + label{border-inline-start:0}
+.import-modes input{position:absolute;opacity:0}
+.import-modes label:has(:checked){z-index:1;background:#242321;border-color:#242321;color:white}
+.import-modes label:has(:focus-visible){z-index:2;outline:2px solid #395d75;outline-offset:2px}
+.import-source{display:grid;justify-items:center;min-width:0;gap:8px}
+.import-source small{font-size:13px;color:#504d47}
+.file-picker{position:relative;display:inline-grid;place-items:center;min-height:44px;padding:6px 16px;border-radius:8px;background:#efede8}
+.file-picker:has(input:hover:not(:disabled)){background:#e3dfd7}
+.file-picker:has(input:focus-visible){outline:2px solid #395d75;outline-offset:2px}
+.file-picker:has(input:disabled){opacity:.4}
+.file-picker input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.file-choice{display:flex;justify-content:center;align-items:center;gap:6px;min-width:0;max-width:100%;color:#504d47}
+.file-choice span{min-width:0;overflow-wrap:anywhere}
+.file-choice button{flex:none;padding-inline:8px;min-height:44px;border-color:transparent;background:transparent}
+.file-choice button:is(:hover,:focus-visible){background:#f0ede8}
+.import-review{margin-top:20px;padding-top:16px;border-top:1px solid #e7e2dc}
+.import-options{gap:14px;justify-items:center}
+.import-options label:has(#fetch-images){display:flex;align-items:center;gap:6px}
+#fetch-images{margin:0}
+.import-archive{margin:0;min-width:0}
+.import-archive summary{cursor:pointer}
+.import-archive .import-source{margin-top:6px}
+.import-archive[open] #archive-selection{display:none}
+#archive-selection:not(:empty){margin-inline-start:6px;color:#504d47;overflow-wrap:anywhere}
+.import-actions{margin-top:18px}
+.parse-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+.parse-button svg{width:18px;height:18px}
+.parse-button:disabled{background:#e7e2dc;border-color:#d9d5ce;color:#5c5650;opacity:1;cursor:default}
+#import[aria-busy=true] .parse-button:disabled{cursor:wait}
+.import-progress{width:min(100%,312px);margin:14px auto 0;color:#504d47;font-size:13px}
+.import-progress-label{display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;text-align:start}
+#import-percentage{font-variant-numeric:tabular-nums}
+#import-progress{display:block;width:100%;height:8px;border:0;border-radius:4px;appearance:none;background:#e7e2dc;accent-color:#395d75}
+#import-progress::-webkit-progress-bar{background:#e7e2dc;border-radius:4px}
+#import-progress::-webkit-progress-value{background:#395d75;border-radius:4px}
+#import-progress::-moz-progress-bar{background:#395d75;border-radius:4px}
+input[type=file]{max-width:100%;font:inherit}
+button{font:inherit;padding:8px 14px;border:1px solid #b6b0a7;background:white;color:#242321;cursor:pointer}
+button.primary{background:#242321;color:white;border-color:#242321}button:disabled{opacity:.65;cursor:wait}
+#status{margin:12px 0 0;overflow-wrap:anywhere}#status:empty{display:none}
+.preview{padding:12px;background:#eae7e1;overflow:auto}
+.preview-stage{position:relative;width:min(100%,var(--preview-width));height:calc(68vh * var(--preview-scale,1));margin-inline:auto;overflow:clip}
+.preview[data-width-mode=manual] .preview-stage{width:var(--preview-width)}
+#page{position:absolute;inset:0 auto auto 0;width:var(--preview-width);height:68vh;border:0;background:white;transform-origin:top left;transform:scale(var(--preview-scale,1))}
+.workspace-controls{display:grid;gap:12px;align-items:start;margin-bottom:12px}
+.workspace-controls > .panel{margin:0;padding:16px;min-width:0}
+.workspace-controls #summary{margin-bottom:6px}
+.workspace-controls #missing{margin:6px 0 0}
+.workspace-controls #image-downloads:empty{display:none}
+.workspace-controls summary{cursor:pointer}
+@media(min-width:1040px){
+  .workspace-controls{grid-template-columns:minmax(270px,.52fr) minmax(0,1.48fr);align-items:stretch}
+}
+.logo-panel [hidden]{display:none!important}
+.display-header{margin-bottom:10px}
+.display-header h2{margin:0}
+.action-tip{position:relative;display:inline-flex}
+.icon-action{display:grid;place-items:center;width:44px;height:44px;padding:0;border:0;border-radius:4px;background:transparent;color:#242321;cursor:pointer}
+.icon-action:is(:hover,:focus-visible){background:#f0ede8}
+.icon-action:active:not([aria-disabled=true]){background:#e7e2dc}
+.icon-action svg{width:20px;height:20px}
+.icon-action[aria-disabled=true]{color:#77716b;cursor:default}
+.action-tip [role=tooltip]{position:absolute;z-index:3;inset-block-start:calc(100% + 4px);inset-inline-end:0;width:max-content;max-width:calc(100vw - 52px);padding:5px 8px;background:#242321;color:white;font-size:13px;visibility:hidden;pointer-events:none}
+.action-tip:hover [role=tooltip],.action-tip:has(:focus-visible) [role=tooltip]{visibility:visible}
+.toolbar{gap:16px 28px}
+.preview-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;min-width:0}
+.toolbar label{display:inline-flex;align-items:center;gap:6px}
+.control-toggle{display:inline-flex}
+.control-toggle button{padding-inline:12px;position:relative;white-space:nowrap}
+.control-toggle button + button{margin-inline-start:-1px}
+.control-toggle button[aria-pressed=true]{z-index:1;background:#242321;border-color:#242321;color:white;font-weight:600}
+.control-toggle button:focus-visible{z-index:2}
+.disclosure{display:inline-flex;align-items:center;gap:10px}
+.disclosure::after{content:'';width:6px;height:6px;border:solid currentColor;border-width:0 1px 1px 0;transform:translateY(-2px) rotate(45deg)}
+.disclosure[aria-expanded=true]{background:#eeebe5}
+.disclosure[aria-expanded=true]::after{transform:translateY(2px) rotate(225deg)}
+#preview-width{inline-size:86px;font:inherit;padding:6px 8px;border:1px solid #b6b0a7}
+#preview-width:invalid{border-color:#9b3524}
+.width-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.width-adjustment{display:flex;align-items:center;gap:4px}
+.width-adjustment .action-tip{width:44px}
+.width-adjustment .action-tip:has(button[hidden]){visibility:hidden;pointer-events:none}
+#preview-width-slider{width:clamp(64px,22vw,112px);height:44px;margin:0;accent-color:#395d75;cursor:ew-resize}
+@media(max-width:350px){
+  .width-controls,.width-adjustment{width:100%}
+  #preview-width-slider{flex:1;min-width:0}
+}
+#auto-width[aria-pressed=true]{color:#395d75}
+#width-feedback{color:#84301f;margin:4px 0 0}
+#width-feedback:empty{display:none}
+.logo-actions,.logo-file{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px}
+.logo-panel button,.logo-panel select,.logo-panel input[type=number]{min-height:44px}
+.logo-panel :is(a,button,summary,input,select):focus-visible{outline:2px solid #395d75;outline-offset:2px}
+.logo-panel small{color:#504d47}
+#logo-status{min-height:1.5em;margin:6px 0 0}
+#logo-individual{border-top:1px solid #e7e2dc;margin-top:8px;padding-top:2px}
+#logo-individual summary{cursor:pointer;min-height:44px;align-content:center;font-weight:600}
+#logo-position-layout{display:grid;grid-template-columns:minmax(140px,170px) minmax(0,1fr);gap:12px;align-items:start;margin-top:4px}
+#logo-positions{display:grid;gap:4px}
+#logo-positions button{text-align:left;overflow-wrap:anywhere;border-color:transparent}
+#logo-positions button:hover{background:#f6f5f2}
+#logo-positions button[aria-pressed=true]{background:#eeebe5;border-color:#b6b0a7;font-weight:600}
+@media(max-width:580px){#logo-position-layout{grid-template-columns:minmax(0,1fr)}#logo-positions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#logo-options{border:1px solid #dedad3;background:#f9f8f6;padding:12px 16px;container-type:inline-size}
+.logo-position-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,260px) auto;align-items:center;gap:8px 16px}
+.logo-visibility{justify-self:end}
+.logo-size-fields{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:4px 8px}
+.logo-size-fields label{display:grid;gap:4px}
+.logo-size-fields input[type=number]{width:100%;min-width:0;font:inherit;padding:6px 10px;border:1px solid #b6b0a7}
+.logo-size-fields input[type=range]{width:100%;height:32px;margin:0;accent-color:#395d75;cursor:ew-resize}
+.logo-size-fields .action-tip [role=tooltip]{inset-inline-end:auto;inset-inline-start:50%;transform:translateX(-50%)}
+@container(max-width:460px){
+  .logo-position-panel{grid-template-columns:minmax(0,1fr) auto}
+  .logo-size-fields{grid-area:2 / 1 / auto / -1}
+  .logo-visibility{grid-area:1 / 2}
+}
+.logo-check{display:inline-flex;align-items:center;min-height:44px;gap:5px}
+.logo-file-name{overflow-wrap:anywhere}
+.logo-offsets{grid-column:1 / -1;border-top:1px solid #e7e2dc;padding-top:6px;margin-top:2px}
+.logo-offsets summary{min-height:36px;align-content:center}
+.offset-fields{display:flex;align-items:end;gap:8px 12px;flex-wrap:wrap}
+.offset-fields label{display:grid;gap:4px}
+.offset-fields input{width:82px;padding:6px 8px;font:inherit;border:1px solid #b6b0a7}
+.nav-form{margin:0;padding:0;border:0;background:transparent;max-width:760px}
+.nav-rows{display:grid;gap:6px}
+.nav-item{display:flex;align-items:end;flex-wrap:wrap;gap:6px 10px}
+.nav-item label{display:grid;gap:2px;min-width:0;flex:0 1 270px}
+.nav-item label:has(input[id^=nav-anchor]){flex-basis:175px}
+.nav-item input{min-width:0;min-height:44px;padding:6px 10px;border:1px solid #b6b0a7;font:inherit}
+.nav-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#navigation-status{margin:8px 0 0}
+#navigation-status:empty{display:none}
+@media(min-width:1040px){
+  .nav-rows{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}
+  .nav-item label:first-child{flex:1 1 140px}
+  .nav-item:has(label + label){grid-column:1 / -1}
+}
+@media(max-width:500px){
+  .nav-item{align-items:end;border-bottom:1px solid #e7e2dc;padding-bottom:6px}
+  .nav-item label:first-child{flex:1 1 0}
+  .nav-item:has(label + label) label{flex:1 1 100%;order:0}
+  .nav-item:has(label + label) button{margin-inline-start:auto}
+}
+select{font:inherit;padding:6px;max-width:100%}
+.display-settings{min-width:0;border-top:1px solid #e7e2dc;margin-top:10px;padding-top:10px}
+.display-settings label{max-width:100%}
+#slideshow-settings .logo-actions{gap:6px 10px}
+#slideshow-settings .logo-actions > label{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+#logo-preview-note{color:#504d47;margin-bottom:8px}
+#slideshow-status{margin:8px 0 0}
+#slideshow-images{margin-top:8px;padding:12px 16px;border:1px solid #dedad3;background:#f9f8f6}
+#slide-photo{max-width:min(100%,360px)}
+#slideshow-status:empty{margin:0}
+
+table{border-collapse:collapse;width:100%;max-width:620px;font-variant-numeric:tabular-nums}td,th{text-align:left;border-bottom:1px solid #e7e2dc;padding:3px 5px}
+details{margin-top:8px}#workspace[hidden]{display:none}
+</style></head><body>
+<header class="app-header">
+<h1>單頁展示轉換工具</h1>
+<div class="app-controls" role="group" aria-label="頁面操作">
+<button id="import-toggle" class="header-action" type="button" aria-controls="import-panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V6a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v3M3 19h15.5l3-8H6l-3 8Z"/></svg><span id="import-label">匯入</span></button>
+<span class="action-tip">
+<button id="logo-restore" class="header-action" type="button" aria-describedby="restore-tip" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v6h6M3.5 10a8.5 8.5 0 1 1 .9 7"/></svg>重置</button>
+<span id="restore-tip" role="tooltip">重置為原始的解析畫面</span>
+</span>
+<span class="action-tip">
+<a id="export" class="header-action" role="link" download aria-label="下載頁面 ZIP" aria-describedby="export-tip" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></svg>下載</a>
+<span id="export-tip" role="tooltip">下載頁面 ZIP（包含目前調整）</span>
+</span>
+</div>
+</header>
+<main>
+<section class="panel import-panel" id="import-panel" aria-labelledby="import-heading">
+<h2 id="import-heading">匯入網頁</h2>
+<form id="import">
+<div class="import-inputs">
+<fieldset class="import-modes" id="import-modes" aria-label="來源">
+<div class="control-toggle">
+<label><input type="radio" name="import-source" value="zip" checked>ZIP</label>
+<label><input type="radio" name="import-source" value="html">HTML</label>
+<label><input type="radio" name="import-source" value="folder">完整資料夾</label>
+</div>
+</fieldset>
+<div class="import-sources">
+<div class="import-source" data-import-mode="zip">
+<small id="zip-help">選擇包含 HTML 和素材的 ZIP 檔。</small>
+<label class="file-picker">選擇檔案
+<input id="zip-entry" type="file" accept=".zip" aria-describedby="zip-help" aria-label="選擇 ZIP 檔">
+</label>
+<div class="file-choice" hidden>
+<span></span>
+<button type="button" data-clear-file="zip-entry" aria-label="清除 ZIP">清除</button>
+</div>
+</div>
+<div class="import-source" data-import-mode="html" hidden>
+<small id="entry-help">在 Chrome 選「網頁，完整」另存，再選擇 HTML 檔。</small>
+<label class="file-picker">選擇檔案
+<input id="entry" type="file" accept=".html,.htm" aria-describedby="entry-help" aria-label="選擇 HTML 檔">
+</label>
+<div class="file-choice" hidden>
+<span></span>
+<button type="button" data-clear-file="entry" aria-label="清除 HTML">清除</button>
+</div>
+</div>
+<div class="import-source" data-import-mode="html" hidden>
+<small id="materials-help">若 Chrome 另存時產生了素材資料夾，請一併選取。</small>
+<label class="file-picker">選擇素材資料夾
+<input id="materials" type="file" webkitdirectory multiple aria-describedby="materials-help" aria-label="選擇素材資料夾">
+</label>
+<div class="file-choice" hidden>
+<span></span>
+<button type="button" data-clear-file="materials" aria-label="清除搭配的素材資料夾">清除</button>
+</div>
+</div>
+<div class="import-source" data-import-mode="folder" hidden>
+<small id="folder-help">選擇同時包含 HTML 和素材的上層資料夾。</small>
+<label class="file-picker">選擇資料夾
+<input id="folder" type="file" webkitdirectory multiple aria-describedby="folder-help" aria-label="選擇完整網頁資料夾">
+</label>
+<div class="file-choice" hidden>
+<span></span>
+<button type="button" data-clear-file="folder" aria-label="清除網頁資料夾">清除</button>
+</div>
+</div>
+</div>
+</div>
+<div class="import-review">
+<div class="import-options">
+<details class="import-archive">
+<summary>缺圖時加入 Chrome 封存（選填）<small id="archive-selection"></small></summary>
+<div class="import-source">
+<small id="archive-help">選擇同一頁以「單一檔案」另存的 .mhtml 或 .mht，補回封存中有收錄的圖片。</small>
+<label class="file-picker">選擇檔案
+<input id="browser-archive" type="file" accept=".mhtml,.mht" aria-describedby="archive-help" aria-label="選擇 Chrome 網頁封存">
+</label>
+<div class="file-choice" hidden>
+<span></span>
+<button type="button" data-clear-file="browser-archive" aria-label="清除 Chrome 網頁封存">清除</button>
+</div>
+</div>
+</details>
+<label><input id="fetch-images" type="checkbox" checked> 自動下載缺少的 HTTPS 圖片與字型</label>
+</div>
+<div class="import-actions">
+<button id="parse-page" class="primary parse-button" type="submit" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10Zm0 0v7h7M9 12l-2 2 2 2m6-4 2 2-2 2m-2-5-2 6"/></svg>解析網頁</button>
+</div>
+<p id="status" role="status"></p>
+</div>
+</form>
+<div class="import-progress" id="import-progress-area" hidden>
+<p class="import-progress-label"><span id="import-phase" role="status"></span><span id="import-percentage" aria-hidden="true"></span></p>
+<progress id="import-progress" max="100" value="0" aria-label="網頁解析進度" aria-describedby="import-phase"></progress>
+</div>
+</section>
+<section id="workspace" hidden>
+<div class="workspace-controls">
+<div class="panel" id="rwd-panel"><div class="display-header"><h2>RWD 檢查結果</h2></div><p id="summary"></p><p id="carousel-status" hidden></p>
+<details><summary>查看各寬度與缺少的素材</summary><table><thead><tr><th>寬度</th><th>修正前溢出</th><th>修正後溢出</th></tr></thead><tbody id="measurements"></tbody></table><p id="missing"></p><ul id="image-downloads"></ul></details>
+</div>
+<section class="panel logo-panel" aria-labelledby="display-heading">
+<div class="display-header">
+<h2 id="display-heading">展示與調整</h2>
+</div>
+<div class="toolbar">
+<div class="preview-controls">
+<div id="preview-device" class="control-toggle" role="group" aria-label="預覽裝置">
+<button type="button" value="mobile" aria-pressed="true">手機</button>
+<button type="button" value="tablet" aria-pressed="false">平板</button>
+<button type="button" value="desktop" aria-pressed="false">桌機</button>
+</div>
+<div class="width-controls">
+<label>預覽寬度 <input id="preview-width" type="number" min="240" max="4096" step="1" required value="390"> <span>px</span></label>
+<div class="width-adjustment">
+<input id="preview-width-slider" type="range" min="240" max="4096" step="1" value="390" aria-label="預覽寬度滑桿" aria-valuetext="390 px">
+<span class="action-tip">
+<button id="auto-width" class="icon-action" type="button" aria-label="自動寬度" aria-describedby="auto-width-tip" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5v14M21 5v14M7 12h10m-7-3-3 3 3 3m4-6 3 3-3 3"/></svg></button>
+<span id="auto-width-tip" role="tooltip">自動填滿預覽寬度</span>
+</span>
+</div>
+</div>
+</div>
+<div id="feature-toggle" class="control-toggle" role="group" aria-label="調整功能">
+<button id="logo-toggle" type="button" aria-pressed="false" aria-controls="logo-configuration">Logo 替換</button>
+<button id="navigation-toggle" type="button" aria-pressed="false" aria-controls="navigation-settings" hidden>導覽項目</button>
+<button id="slideshow-toggle" type="button" aria-pressed="false" aria-controls="slideshow-settings" hidden>輪播設定</button>
+</div>
+</div>
+<p id="width-feedback" role="status"></p>
+<div class="display-settings" id="logo-configuration" hidden>
+<div id="logo-bulk" hidden>
+<div class="logo-actions">
+<button id="logo-all-pick" type="button" class="primary">上傳圖片，一次替換</button>
+<input id="logo-all-file" type="file" aria-label="替換全部 Logo" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden>
+<label class="logo-check"><input id="logo-all-trim" type="checkbox" checked> 裁除透明留白</label>
+</div>
+</div>
+<p id="logo-status" role="status"></p>
+<details id="logo-individual" hidden>
+<summary>個別調整目前預覽的 Logo</summary>
+<p id="logo-preview-note"></p>
+<div id="logo-position-layout">
+<div id="logo-positions" role="group" aria-label="Logo 位置"></div>
+<div id="logo-options"></div>
+</div>
+</details>
+</div>
+<div class="display-settings" id="slideshow-settings" hidden>
+<div class="logo-actions">
+<label>轉場 <select id="slide-transition"><option value="fade">淡入淡出</option><option value="slide">左右滑動</option><option value="ken-burns">Ken Burns</option><option value="depth" hidden>前後堆疊</option><option value="reveal" hidden>遮罩滑入</option></select></label>
+<label>速度曲線 <select id="slide-easing"><option value="ease">Ease</option><option value="ease-in">Ease In</option><option value="ease-out">Ease Out</option><option value="ease-in-out">Ease In Out</option></select></label>
+<button id="slideshow-images-toggle" type="button" class="disclosure" aria-expanded="false" aria-controls="slideshow-images">更換輪播圖片</button>
+</div>
+<div id="slideshow-images" hidden>
+<div class="logo-actions">
+<label>要更換的圖片 <select id="slide-photo"></select></label>
+<button id="slide-photo-pick" type="button">更換圖片</button>
+<input id="slide-photo-file" type="file" aria-label="上傳輪播圖片" accept="image/png,image/jpeg,image/webp,image/gif,image/avif" hidden>
+</div>
+</div>
+<p id="slideshow-status" role="status"></p>
+</div>
+<div class="display-settings" id="navigation-settings" hidden>
+<form id="navigation-form" class="nav-form">
+<div class="nav-rows" id="navigation-rows"></div>
+<div class="nav-actions">
+<button id="navigation-add" type="button">新增項目</button>
+<button id="navigation-save" class="primary" type="submit" disabled>套用導覽</button>
+<button id="navigation-reset" type="button" disabled>重置導覽</button>
+</div>
+<p id="navigation-status" role="status"></p>
+</form>
+</div>
+</section>
+</div>
+<div class="preview" id="preview"><div class="preview-stage" id="preview-stage"><iframe id="page" title="轉換後的網頁" sandbox="allow-scripts"></iframe></div></div>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const status = $('status');
+const importToggle = $('import-toggle');
+const importPanel = $('import-panel');
+function showImportPanel(open) {
+  importPanel.hidden = !open;
+  importToggle.setAttribute('aria-expanded',String(open));
+}
+let current = null;
+const previewPresets = {mobile:390,tablet:834};
+const desktopMinWidth = 1025;
+const deviceAtWidth = width => width >= desktopMinWidth ? 'desktop' : width < 768 ? 'mobile' : 'tablet';
+const deviceButtons = [...$('preview-device').querySelectorAll('button')];
+const autoWidthButton = $('auto-width');
+function syncDevice(width) {
+  const device = deviceAtWidth(width);
+  for (const button of deviceButtons) button.setAttribute('aria-pressed',String(button.value === device));
+  autoWidthButton.hidden = device !== 'desktop';
+}
+function setDisclosure(button,open) {
+  button.setAttribute('aria-expanded',String(open));
+  $(button.getAttribute('aria-controls')).hidden = !open;
+}
+let selectedWidth = previewPresets.mobile;
+const preview = $('preview');
+const previewStage = $('preview-stage');
+const widthSlider = $('preview-width-slider');
+let resizePreview;
+function availablePreviewWidth() {
+  const style = getComputedStyle(preview);
+  return preview.getBoundingClientRect().width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+}
+new ResizeObserver(() => requestAnimationFrame(() => resizePreview?.())).observe(preview);
+function updatePreviewWidth(width) {
+  widthSlider.value = width;
+  widthSlider.setAttribute('aria-valuetext',width+' px');
+  previewStage.style.setProperty('--preview-width',width+'px');
+  const scale = Math.min(1,availablePreviewWidth() / width);
+  previewStage.style.setProperty('--preview-scale',preview.dataset.widthMode === 'manual' ? 1 : scale);
+}
+const readFile = file => new Promise((resolve,reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+function isSingleFrameGif(bytes) {
+  if (bytes.length < 14) return false;
+  let offset = 13 + ((bytes[10]&128) ? 3*(2 << (bytes[10]&7)) : 0);
+  let frames = 0;
+  while (offset < bytes.length) {
+    const tag = bytes[offset++];
+    if (tag === 0x3b) return frames === 1;
+    if (tag === 0x21) {
+      offset++; // Extension label.
+    } else if (tag === 0x2c && offset+9 <= bytes.length) {
+      if (++frames > 1) return false;
+      const flags = bytes[offset+8];
+      offset += 10 + ((flags&128) ? 3*(2 << (flags&7)) : 0);
+    } else {
+      return false;
+    }
+    // Image data and extensions both end with a zero-length sub-block.
+    while (offset < bytes.length && bytes[offset]) offset += bytes[offset]+1;
+    offset++;
+  }
+  return false;
+}
+async function trimLogoPadding(file, image, original) {
+  if (file.type !== 'image/png' && file.type !== 'image/gif') return original;
+  const buffer = await file.arrayBuffer();
+  if (file.type === 'image/gif' && !isSingleFrameGif(new Uint8Array(buffer))) return original;
+  if (file.type === 'image/png') {
+    const bytes = new DataView(buffer);
+    // Preserve animation in APNG files.
+    for (let offset = 8; offset+12 <= bytes.byteLength;) {
+      const type = bytes.getUint32(offset+4);
+      if (type === 0x6163544c) return original; // acTL
+      if (type === 0x49444154) break; // IDAT
+      offset += 12+bytes.getUint32(offset);
+    }
+  }
+  const scale = Math.min(1,1024/Math.max(image.naturalWidth,image.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1,Math.round(image.naturalWidth*scale));
+  canvas.height = Math.max(1,Math.round(image.naturalHeight*scale));
+  const ctx = canvas.getContext('2d',{willReadFrequently:true});
+  const {width,height} = canvas;
+  ctx.drawImage(image,0,0,width,height);
+  const {data} = ctx.getImageData(0,0,width,height);
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let y=0;y<height;y++) {
+    for (let x=0;x<width;x++) {
+      if (!data[4*(y*width+x)+3]) continue;
+      left = Math.min(left,x);
+      top = Math.min(top,y);
+      right = Math.max(right,x);
+      bottom = Math.max(bottom,y);
+    }
+  }
+  if (right < 0) throw Error('這張 Logo 是全透明的，請選擇有圖案的圖片。');
+  if (left === 0 && top === 0 && right === width-1 && bottom === height-1) return original;
+  const cropped = document.createElement('canvas');
+  cropped.width = right-left+1;
+  cropped.height = bottom-top+1;
+  cropped.getContext('2d').drawImage(canvas,left,top,cropped.width,cropped.height,0,0,cropped.width,cropped.height);
+  return cropped.toDataURL('image/png');
+}
+async function loadImage(file, trim) {
+  if (file.size > 5*1024*1024) throw Error('圖片上限為 5 MB。');
+  const data = await readFile(file);
+  const image = new Image();
+  image.src = data;
+  try { await image.decode(); }
+  catch { throw Error('圖片無法開啟，請選擇可正常顯示的圖片。'); }
+  const imageData = trim ? await trimLogoPadding(file,image,data) : data;
+  if (imageData !== data) {
+    image.src = imageData;
+    await image.decode();
+  }
+  return {imageData, ratio:image.naturalWidth/image.naturalHeight, trimmed:imageData !== data};
+}
+async function post(path,data) {
+  const response = await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const result = await response.json();
+  if (!response.ok) throw Error(result.error || '操作失敗。');
+  return result;
+}
+function display(report) {
+  $('workspace').hidden = false;
+  $('page').src = report.preview;
+  $('export').href = '/export/'+report.id;
+  $('export').setAttribute('aria-disabled','false');
+  const names = {container:'容器',cards:'卡片群組',media:'圖片／影片'};
+  const counts = Object.entries(names).flatMap(([key,name]) => {
+    const count = report.changes.filter(change => change === key).length;
+    return count ? [name+' '+count+' 處'] : [];
+  });
+  const pending = report.after.filter(item => item.overflow > 2).length;
+  $('summary').textContent = (counts.length ? '已修正 '+counts.join('、')+'。' : '未套用版面修正。') +
+    (pending ? '其中 '+pending+' 種寬度仍有水平溢出。' : '各檢測寬度均無水平溢出。');
+  const rows = report.before.map((item,i) => {
+    const tr = document.createElement('tr');
+    for (const n of [item.previewWidth,item.overflow,report.after[i].overflow]) {
+      const td = document.createElement('td');
+      td.textContent = n+' px';
+      tr.append(td);
+    }
+    return tr;
+  });
+  $('measurements').replaceChildren(...rows);
+  const carouselStatus = $('carousel-status');
+  const {rails=0,fades=0,snapshots=0,incomplete=0} = report.carousels || {};
+  const interactive = (report.slideshowCount || 0)+rails+fades;
+  carouselStatus.textContent = [
+    interactive ? '已保留 '+interactive+' 組可操作的輪播。' : '',
+    snapshots ? snapshots+' 組輪播無法辨識完整結構或轉場，已保留封存中的可見畫面。' : '',
+    incomplete ? incomplete+' 組多圖層輪播缺少部分圖片。' : ''
+  ].filter(Boolean).join(' ');
+  carouselStatus.hidden = !carouselStatus.textContent;
+  $('missing').textContent = report.missing.length ? '缺少的素材：'+report.missing.join('、') : '未偵測到缺少的素材。';
+  if (report.staticMedia) $('missing').textContent += ' 有 '+report.staticMedia+' 處動態媒體使用封存內的靜態備用圖。';
+  const downloads = report.downloads;
+  const list = $('image-downloads');
+  list.replaceChildren();
+  if (downloads) {
+    $('summary').textContent += ' 遠端圖片已下載 '+downloads.saved+' 張，未下載 '+(downloads.failed.length+downloads.skipped)+' 張。';
+    if (downloads.recovered) $('summary').textContent += ' 從 Chrome 網頁封存補回 '+downloads.recovered+' 張。';
+    for (const {source,reason} of downloads.failed) {
+      const row = document.createElement('li');
+      row.textContent = source+'（'+reason+'）';
+      list.append(row);
+    }
+  }
+  const fonts = report.fontDownloads;
+  if (fonts) $('summary').textContent += ' 字型已下載 '+fonts.saved+' 個'+
+    (fonts.failed.length || fonts.skipped ? '，未下載 '+(fonts.failed.length+fonts.skipped)+' 個。' : '。');
+  if (report.unresolvedFonts?.length) {
+    $('missing').textContent += ' 未取得的字型來源：'+report.unresolvedFonts.join('、')+'。';
+  }
+  renderLogoControls(report);
+}
+function renderLogoControls(report) {
+  const bulk = $('logo-all-file');
+  const bulkButton = $('logo-all-pick');
+  const logoToggle = $('logo-toggle');
+  const navigationToggle = $('navigation-toggle');
+  const slideshowToggle = $('slideshow-toggle');
+  const featureButtons = [logoToggle,navigationToggle,slideshowToggle];
+  const logoPanel = $('logo-configuration');
+  const individual = $('logo-individual');
+  const restore = $('logo-restore');
+  const positions = $('logo-positions');
+  const message = $('logo-status');
+  const project = report.id;
+  const states = report.logos.map(logo => ({
+    ...logo,
+    label:logo.variant || logo.section+' · '+logo.name,
+    size:{}, ratio:0, visible:true, filename:''
+  }));
+  const slideshowStatus = $('slideshow-status');
+  const transition = $('slide-transition');
+  const easing = $('slide-easing');
+  const initialEffect = report.slideshowEffect || {transition:'fade',easing:'ease'};
+  let savedEffect = initialEffect;
+  let active;
+  let selected;
+  let dirty = false;
+  let sizeTimer;
+  const pendingSizes = new Map();
+
+  const measurements = new Map(report.after.map(row => [row.previewWidth,row.logos]));
+  const rowsAtWidth = () => measurements.get(selectedWidth) || [];
+  const metrics = logo => rowsAtWidth().find(row => row.id === logo.id);
+  const shown = () => states.filter(logo => metrics(logo)?.available);
+  function refresh(preview = report.preview, focusedSlide) {
+    const url = new URL(preview,location.origin);
+    url.searchParams.set('updated',Date.now());
+    if (focusedSlide) url.searchParams.set('slideFocus',focusedSlide);
+    if (!logoPanel.hidden && individual.open && selected?.hasVariants && !metrics(selected)?.visible) {
+      url.searchParams.set('logoFocus',selected.id);
+    }
+    $('page').src = url.href;
+  }
+
+  function updateLogo(action, pending, onSuccess, {keepSizeFocus = false, onFailure, output = message} = {}) {
+    const run = async () => {
+      if (current?.id !== project) return;
+      const controls = [...document.querySelectorAll('#logo-restore,.logo-panel button,.logo-panel input,#slideshow-settings select')];
+      const enabled = controls.filter(control =>
+        !control.disabled && !(keepSizeFocus && (control.type === 'number' || control.closest('.logo-size-fields'))));
+      enabled.forEach(control => { control.disabled = true; });
+      output.textContent = pending;
+      try {
+        const result = await action();
+        if (current?.id !== project) return;
+        dirty = true;
+        onSuccess(result);
+        refresh(result.preview,result.slideFocus);
+      } catch (error) {
+        if (current?.id === project) {
+          onFailure?.();
+          output.textContent = error.message || '無法更新，請重試。';
+        }
+      } finally {
+        if (current?.id === project) {
+          enabled.forEach(control => { control.disabled = false; });
+          syncNavActions();
+          bulk.value = '';
+        }
+      }
+    };
+    const latest = active ? active.then(run) : run();
+    active = latest;
+    latest.then(() => { if (active === latest) active = undefined; });
+    return latest;
+  }
+
+  function flushSizes() {
+    clearTimeout(sizeTimer);
+    for (const [logo,size] of pendingSizes) {
+      updateLogo(() => post('/logo/'+project,{logo:logo.id,size}),'正在更新尺寸…',result => {
+        logo.size = result.size;
+        if (shown().includes(logo)) message.textContent = logo.label+'尺寸已更新。';
+      },{keepSizeFocus:true});
+    }
+    pendingSizes.clear();
+    return active;
+  }
+
+  function logoIconToggle(label,tipId,icons,tips) {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'action-tip';
+    wrapper.innerHTML = `<button class="icon-action" type="button" aria-label="${label}" aria-describedby="${tipId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path/></svg></button><span id="${tipId}" role="tooltip"></span>`;
+    const button = wrapper.querySelector('button');
+    const path = wrapper.querySelector('path');
+    const tooltip = wrapper.querySelector('[role=tooltip]');
+    function setPressed(pressed) {
+      button.setAttribute('aria-pressed',String(pressed));
+      path.setAttribute('d',icons[Number(pressed)]);
+      tooltip.textContent = tips[Number(pressed)];
+    }
+    return {wrapper,button,setPressed};
+  }
+
+  function showPosition() {
+    const logo = selected;
+    if (!logo) {
+      $('logo-options').replaceChildren();
+      return;
+    }
+    const panel = document.createElement('div');
+    panel.className = 'logo-position-panel';
+    const fileRow = document.createElement('div');
+    fileRow.className = 'logo-file';
+    const picker = document.createElement('input');
+    picker.type = 'file';
+    picker.accept = bulk.accept;
+    picker.hidden = true;
+    picker.setAttribute('aria-label','更換 '+logo.label);
+    const pick = document.createElement('button');
+    pick.type = 'button';
+    pick.textContent = '更換圖片';
+    pick.onclick = () => picker.click();
+    const filename = document.createElement('small');
+    filename.className = 'logo-file-name';
+    filename.textContent = logo.filename || '原網頁圖片';
+    const visibility = logoIconToggle('顯示 Logo','logo-visibility-tip',[
+      'M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.8 5.3A11 11 0 0 1 22 12a13 13 0 0 1-2.5 3.2M6.3 6.3A14 14 0 0 0 2 12c2.4 4.5 6.1 7 10 7 1.7 0 3.4-.5 4.9-1.4',
+      'M2 12s3.4-7 10-7 10 7 10 7-3.4 7-10 7-10-7-10-7Z M14.5 12a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z'
+    ],['顯示 Logo','隱藏 Logo']);
+    visibility.wrapper.classList.add('logo-visibility');
+    visibility.setPressed(logo.visible);
+    visibility.button.onclick = () => {
+      flushSizes();
+      const next = !logo.visible;
+      updateLogo(() => post('/logo/'+project,{logo:logo.id,visible:next}),'正在更新顯示設定…',result => {
+        logo.visible = result.visible;
+        visibility.setPressed(logo.visible);
+        message.textContent = logo.label+(result.visible ? '已顯示。' : '已隱藏。');
+      });
+    };
+    fileRow.append(pick,picker,filename);
+    panel.append(fileRow);
+    const measure = metrics(logo);
+    const device = deviceAtWidth(selectedWidth);
+    const dims = pendingSizes.get(logo) || logo.size;
+    const ratio = logo.ratio || measure.ratio || 1;
+    const fields = document.createElement('div');
+    fields.className = 'logo-size-fields';
+    const limits = report.logoSizeLimits;
+    function sizeField(label,min,max,value) {
+      const dimension = document.createElement('div');
+      const wrapper = document.createElement('label');
+      wrapper.textContent = label+'（px）';
+      const input = document.createElement('input');
+      Object.assign(input,{type:'number',min,max,step:1,required:true,value});
+      wrapper.append(input);
+      const slider = document.createElement('input');
+      Object.assign(slider,{type:'range',min,max,step:1,value});
+      slider.setAttribute('aria-label','Logo '+label+'滑桿');
+      dimension.append(wrapper,slider);
+      return {dimension,input,slider};
+    }
+    const height = dims[device] ?? (measure.height || report.defaultLogoSize[device]);
+    const width = dims.widths?.[device] ?? (dims[device] == null && measure.width ? measure.width : Math.round(height*ratio));
+    const widthControl = sizeField('寬度',1,limits.width[device],Math.min(limits.width[device],width));
+    const heightControl = sizeField('高度',limits.min,limits[device],Math.max(limits.min,Math.min(limits[device],height)));
+    const boxWidth = widthControl.input;
+    const boxHeight = heightControl.input;
+    const controls = [['width',widthControl],['height',heightControl]];
+    const lock = logoIconToggle('鎖定比例','logo-ratio-tip',[
+      'M6 10V7a5 5 0 0 1 9.9-1M5 10h14v11H5zM12 14v3',
+      'M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5zM12 14v3'
+    ],['鎖定比例','解除比例鎖定']);
+    let locked = dims.locks?.[device] !== false;
+    lock.setPressed(locked);
+    fields.append(widthControl.dimension,lock.wrapper,heightControl.dimension);
+    function syncSliders() {
+      for (const [, {input,slider}] of controls) {
+        if (input.validity.valid) slider.value = input.value;
+        slider.setAttribute('aria-valuetext',slider.value+' px');
+      }
+    }
+    syncSliders();
+    function discardPendingDimensions() {
+      const offsets = pendingSizes.get(logo)?.offsets;
+      if (offsets) pendingSizes.set(logo,{offsets});
+      else pendingSizes.delete(logo);
+    }
+    function queueSize(axis) {
+      const edited = axis === 'width' ? boxWidth : boxHeight;
+      if (locked && edited.validity.valid) {
+        const requestedHeight = axis === 'width' ? boxWidth.valueAsNumber/ratio : boxHeight.valueAsNumber;
+        const fitHeight = Math.max(limits.min,Math.min(limits[device],limits.width[device]/ratio,requestedHeight));
+        boxHeight.value = Math.round(fitHeight);
+        boxWidth.value = Math.max(1,Math.min(limits.width[device],Math.round(fitHeight*ratio)));
+      }
+      if (!boxWidth.validity.valid || !boxHeight.validity.valid) {
+        discardPendingDimensions();
+        return;
+      }
+      pendingSizes.set(logo,{...pendingSizes.get(logo),[device]:boxHeight.valueAsNumber,
+        widths:{[device]:boxWidth.valueAsNumber},
+        locks:{[device]:locked}});
+      clearTimeout(sizeTimer);
+      sizeTimer = setTimeout(flushSizes,160);
+    }
+    // Keep typing intact when a linked dimension hits its limit. Apply the
+    // fitted value when the user leaves that field.
+    for (const [axis,{input,slider}] of controls) {
+      let fitted;
+      input.addEventListener('input',() => {
+        fitted = undefined;
+        if (!input.validity.valid) { discardPendingDimensions(); return; }
+        const value = input.value;
+        queueSize(axis);
+        syncSliders();
+        if (value !== input.value) {
+          fitted = input.value;
+          input.value = value;
+        }
+      });
+      input.addEventListener('blur',() => {
+        if (fitted !== undefined || !input.validity.valid) input.value = fitted ?? slider.value;
+        fitted = undefined;
+      });
+      slider.oninput = () => {
+        input.value = slider.value;
+        queueSize(axis);
+        syncSliders();
+      };
+    }
+    lock.button.onclick = () => {
+      locked = !locked;
+      lock.setPressed(locked);
+      for (const [, {input,slider}] of controls) {
+        if (!input.validity.valid) input.value = slider.value;
+      }
+      queueSize('height');
+      syncSliders();
+    };
+    panel.append(fields,visibility.wrapper);
+    const offsetControl = document.createElement('details');
+    offsetControl.className = 'logo-offsets';
+    offsetControl.innerHTML = '<summary>位置微調</summary><div class="offset-fields"><label>水平（px）<input type="number" step="1" required></label><label>垂直（px）<input type="number" step="1" required></label><button type="button">重置位置</button></div>';
+    const [offsetX,offsetY] = offsetControl.querySelectorAll('input');
+    const resetOffset = offsetControl.querySelector('button');
+    let offset = dims.offsets?.[device] || {x:0,y:0};
+    for (const [field,axis] of [[offsetX,'x'],[offsetY,'y']]) {
+      Object.assign(field,{min:-limits.offset,max:limits.offset,value:offset[axis]});
+      field.oninput = () => {
+        if (offsetX.validity.valid && offsetY.validity.valid) saveOffset(offsetX.valueAsNumber,offsetY.valueAsNumber);
+      };
+      field.onblur = () => { if (!field.validity.valid) field.value = offset[axis]; };
+    }
+    function saveOffset(x,y) {
+      offset = {x,y};
+      pendingSizes.set(logo,{...pendingSizes.get(logo),offsets:{[device]:offset}});
+      clearTimeout(sizeTimer);
+      sizeTimer = setTimeout(flushSizes,160);
+    }
+    resetOffset.onclick = () => {
+      offsetX.value = offsetY.value = 0;
+      saveOffset(0,0);
+    };
+    panel.append(offsetControl);
+    picker.onchange = () => {
+      const file = picker.files[0];
+      picker.value = '';
+      if (!file) return;
+      flushSizes();
+      updateLogo(async () => {
+        const {imageData,ratio} = await loadImage(file,$('logo-all-trim').checked);
+        return {...await post('/logo/'+project,{logo:logo.id,data:imageData}),ratio};
+      },'正在更換圖片…',result => {
+        logo.filename = file.name;
+        logo.ratio = result.ratio;
+        logo.size = result.size;
+        showPosition();
+        $('logo-options').querySelector('button').focus();
+        message.textContent = logo.label+'圖片已更換。';
+      });
+    };
+    $('logo-options').replaceChildren(panel);
+  }
+
+  $('logo-bulk').hidden = individual.hidden = !states.length;
+  function showFeature(activeFeature) {
+    const logoWasHidden = logoPanel.hidden;
+    for (const button of featureButtons) {
+      const open = button === activeFeature;
+      button.setAttribute('aria-pressed',String(open));
+      $(button.getAttribute('aria-controls')).hidden = !open;
+    }
+    if (logoWasHidden !== logoPanel.hidden && individual.open && selected?.hasVariants && !metrics(selected)?.visible) refresh();
+  }
+  showFeature();
+  for (const button of featureButtons) {
+    button.onclick = () => showFeature(button.getAttribute('aria-pressed') === 'true' ? undefined : button);
+  }
+  const navInitial = report.navigationItems || [];
+  let navSaved = navInitial;
+  let navDraft = navInitial.map(item => ({...item}));
+  const navForm = $('navigation-form');
+  const navRows = $('navigation-rows');
+  const navAdd = $('navigation-add');
+  const navSave = $('navigation-save');
+  const navReset = $('navigation-reset');
+  const navStatus = $('navigation-status');
+  const sameNav = (first,second) => JSON.stringify(first) === JSON.stringify(second);
+  const navEdited = () => !sameNav(navDraft,navSaved);
+  navigationToggle.hidden = !report.navigationItems;
+  function syncNavActions() {
+    navSave.disabled = !navEdited();
+    navReset.disabled = sameNav(navDraft,navInitial) && sameNav(navSaved,navInitial);
+    navAdd.disabled = navDraft.length >= Math.max(50,navInitial.length+20);
+    restore.setAttribute('aria-disabled',String(!dirty && !navEdited()));
+  }
+  function renderNavRows() {
+    navRows.replaceChildren(...navDraft.map((item,index) => {
+      const row = document.createElement('div');
+      row.className = 'nav-item';
+      function addField(label,property,max) {
+        const field = document.createElement('label');
+        field.textContent = label;
+        const input = document.createElement('input');
+        Object.assign(input,{type:'text',value:item[property],maxLength:max});
+        input.oninput = () => {
+          item[property] = input.value;
+          input.setCustomValidity('');
+          syncNavActions();
+        };
+        field.append(input);
+        row.append(field);
+        return input;
+      }
+      const label = addField('項目 '+(index+1),'label',200);
+      label.required = true;
+      if (Object.hasOwn(item,'href')) {
+        const anchor = addField('頁內連結（選填）','href',400);
+        anchor.id = 'nav-anchor-'+index;
+        anchor.placeholder = '#contact';
+      }
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = '刪除';
+      remove.setAttribute('aria-label','刪除項目 '+(index+1));
+      remove.onclick = () => {
+        navDraft.splice(index,1);
+        renderNavRows();
+        (navRows.children[Math.min(index,navDraft.length-1)]?.querySelector('input') || navAdd).focus();
+      };
+      row.append(remove);
+      return row;
+    }));
+    syncNavActions();
+  }
+  function acceptNavigation(items) {
+    navSaved = items;
+    navDraft = items.map(item => ({...item}));
+    renderNavRows();
+  }
+  navStatus.textContent = '';
+  renderNavRows();
+  navAdd.onclick = () => {
+    navDraft.push({id:null,label:'',href:''});
+    renderNavRows();
+    navRows.lastElementChild.querySelector('input').focus();
+  };
+  async function saveNavigation() {
+    if (!navEdited()) return true;
+    [...navRows.children].forEach((row,index) => {
+      const [label,anchor] = row.querySelectorAll('input');
+      label.setCustomValidity(navDraft[index].label.trim() ? '' : '請輸入導覽文字。');
+      if (anchor) {
+        const href = anchor.value.trim();
+        anchor.setCustomValidity(!href || /^#[^\s]*$/.test(href) ? '' : '請使用頁內錨點，例如 #contact。');
+      }
+    });
+    if (!navForm.checkValidity()) {
+      showFeature(navigationToggle);
+      navForm.reportValidity();
+      return false;
+    }
+    const items = navDraft.map(item => ({...item}));
+    let saved = false;
+    flushSizes();
+    await updateLogo(() => post('/navigation/'+project,{items}),'正在套用導覽…',result => {
+      acceptNavigation(result.items);
+      saved = true;
+      navStatus.textContent = '已套用導覽，ZIP 會保留這些項目。';
+    },{output:navStatus});
+    syncNavActions();
+    return saved;
+  }
+  navForm.onsubmit = event => { event.preventDefault(); saveNavigation(); };
+  navReset.onclick = async () => {
+    if (sameNav(navSaved,navInitial)) {
+      acceptNavigation(navInitial);
+      navStatus.textContent = '已重置為原始導覽。';
+      return;
+    }
+    flushSizes();
+    await updateLogo(() => post('/navigation/'+project,{reset:true}),'正在重置導覽…',result => {
+      acceptNavigation(result.items);
+      navStatus.textContent = '已重置為原始導覽。';
+    },{output:navStatus});
+    syncNavActions();
+  };
+  individual.open = false;
+  message.textContent = states.length ? '已找到 '+states.length+' 個 Logo 位置。' : '這個網頁沒有可替換的 Logo。';
+  bulk.value = '';
+  bulkButton.disabled = false;
+  bulk.onchange = () => {
+    const file = bulk.files[0];
+    if (!file) return;
+    flushSizes();
+    updateLogo(async () => {
+      const {imageData,ratio} = await loadImage(file,$('logo-all-trim').checked);
+      return {...await post('/logo/'+project,{logo:'all',data:imageData}),ratio};
+    },'正在更換圖片…',result => {
+      for (const logo of states) {
+        logo.filename = file.name;
+        logo.ratio = result.ratio;
+        logo.size = result.sizes[logo.id];
+      }
+      showPosition();
+      message.textContent = '已用「'+file.name+'」更換 '+states.length+' 個 Logo。';
+    });
+  };
+  bulkButton.onclick = () => bulk.click();
+  restore.setAttribute('aria-disabled','true');
+  restore.onclick = () => {
+    if (current?.id !== project || (!dirty && !navEdited())) return;
+    if (!window.confirm('Logo、輪播和導覽會回到剛解析完的設定。確定還原？')) return;
+    clearTimeout(sizeTimer);
+    pendingSizes.clear();
+    updateLogo(() => post('/restore/'+project,{}),'正在還原…',result => {
+      dirty = false;
+      for (const logo of states) {
+        logo.filename = '';
+        logo.visible = true;
+        logo.size = {};
+        logo.ratio = 0;
+      }
+      $('logo-all-trim').checked = true;
+      setEffect(initialEffect);
+      slideshowStatus.textContent = '';
+      acceptNavigation(result.navigationItems || []);
+      navStatus.textContent = '';
+      showPosition();
+      message.textContent = '已還原到剛解析完的樣子。';
+    });
+  };
+  const exportLink = $('export');
+  exportLink.onclick = async event => {
+    if (current?.id !== project) {
+      event.preventDefault();
+      return;
+    }
+    if (!active && !pendingSizes.size && !navEdited()) return;
+    event.preventDefault();
+    if (navEdited() && !await saveNavigation()) return;
+    await flushSizes();
+    if (current?.id === project) window.location.assign(exportLink.href);
+  };
+  function describePosition() {
+    $('logo-preview-note').textContent = !measurements.has(selectedWidth)
+      ? '正在確認這個寬度的 Logo 位置。'
+      : !selected ? '這個寬度沒有可調整的 Logo。'
+      : selected.hasVariants && !metrics(selected)?.visible
+        ? '正在預覽「'+selected.label+'」。匯出後會依原網頁狀態切換。'
+        : '只列出適用於 '+selectedWidth+' px 的 Logo 位置。';
+  }
+
+  function syncPositions() {
+    const available = shown();
+    selected = available.find(logo => metrics(logo).visible && logo.visible) || available[0];
+    positions.replaceChildren(...available.map(logo => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = logo.label;
+      button.setAttribute('aria-pressed',String(logo === selected));
+      button.onclick = () => {
+        flushSizes();
+        positions.querySelector('[aria-pressed=true]')?.setAttribute('aria-pressed','false');
+        selected = logo;
+        button.setAttribute('aria-pressed','true');
+        showPosition();
+        describePosition();
+        refresh();
+      };
+      return button;
+    }));
+    $('logo-position-layout').hidden = !available.length;
+    describePosition();
+    showPosition();
+  }
+
+  function setEffect(value) {
+    savedEffect = value;
+    transition.value = value.transition;
+    easing.value = value.easing;
+  }
+  slideshowToggle.hidden = !report.slideshowCount;
+  slideshowStatus.textContent = '';
+  for (const option of transition.querySelectorAll('option:is([value=depth],[value=reveal])')) {
+    option.hidden = initialEffect.transition !== option.value;
+  }
+  setEffect(savedEffect);
+  const applyEffect = () => {
+    flushSizes();
+    const value = {transition:transition.value,easing:easing.value};
+    updateLogo(() => post('/slideshow/'+project,value),'正在更新轉場…',() => {
+      savedEffect = value;
+      slideshowStatus.textContent = '已更新，ZIP 會保留這組設定。';
+    },{output:slideshowStatus,onFailure:() => setEffect(savedEffect)});
+  };
+  transition.onchange = easing.onchange = applyEffect;
+  const photos = report.slideshowImages || [];
+  const photo = $('slide-photo');
+  const photoFile = $('slide-photo-file');
+  const photoToggle = $('slideshow-images-toggle');
+  const photosPanel = $('slideshow-images');
+  photoToggle.hidden = !photos.length;
+  setDisclosure(photoToggle,false);
+  photoToggle.onclick = () => setDisclosure(photoToggle,photosPanel.hidden);
+  photo.replaceChildren(...photos.map(image => {
+    const gallery = report.slideshowCount > 1 ? '輪播 '+(image.gallery+1)+' · ' : '';
+    const title = image.title ? ' · '+image.title : '';
+    const position = image.imageCount > 1 ? ' · 圖片 '+(image.imageIndex+1) : '';
+    return new Option(gallery+'第 '+(image.slide+1)+' 張'+title+position,image.id);
+  }));
+  photo.onchange = () => {
+    const target = photos[photo.selectedIndex];
+    if (target) refresh(report.preview,target.gallery+'-'+target.slide);
+  };
+  $('slide-photo-pick').onclick = () => photoFile.click();
+  photoFile.value = '';
+  photoFile.onchange = () => {
+    const file = photoFile.files[0];
+    const target = photos[photo.selectedIndex];
+    photoFile.value = '';
+    if (!file || !target) return;
+    flushSizes();
+    updateLogo(async () => {
+      const {imageData} = await loadImage(file,false);
+      return post('/slideshow-image/'+project,{id:target.id,data:imageData});
+    },'正在更新輪播圖片…',() => {
+      slideshowStatus.textContent = '第 '+(target.slide+1)+' 張已換成「'+file.name+'」，ZIP 會包含新圖。';
+    },{output:slideshowStatus});
+  };
+  let measureTimer;
+  let measuredRequest = 0;
+  const widthField = $('preview-width');
+  const widthFeedback = $('width-feedback');
+  function setWidthMode(mode) {
+    preview.dataset.widthMode = mode;
+    autoWidthButton.setAttribute('aria-pressed',String(mode === 'auto'));
+  }
+  function showWidthResults() {
+    const available = shown().length;
+    if (states.length) message.textContent = available ? '此寬度有 '+available+' 個 Logo 位置。' : '此寬度沒有可調整的 Logo。';
+    syncPositions();
+  }
+  function applyWidth(width) {
+    flushSizes();
+    clearTimeout(measureTimer);
+    const request = ++measuredRequest;
+    selectedWidth = width;
+    syncDevice(width);
+    updatePreviewWidth(width);
+    const address = new URL($('page').src,location.origin);
+    if (address.searchParams.has('logoFocus')) refresh();
+    if (!states.length) return;
+    if (measurements.has(width)) {
+      showWidthResults();
+      return;
+    }
+    syncPositions();
+    message.textContent = '正在確認 '+width+' px 的 Logo 位置…';
+    measureTimer = setTimeout(async () => {
+      try {
+        const result = await post('/preview-width/'+project,{width});
+        if (current?.id !== project) return;
+        measurements.set(result.width,result.logos);
+        if (request === measuredRequest) showWidthResults();
+      } catch(error) {
+        if (current?.id === project && request === measuredRequest) {
+          message.textContent = '無法確認 Logo 位置。可重新輸入寬度再試。';
+          $('logo-preview-note').textContent = '';
+        }
+      }
+    },180);
+  }
+  function autoPreviewWidth() {
+    return Math.min(Number(widthField.max),Math.max(desktopMinWidth,Math.floor(availablePreviewWidth())));
+  }
+  function updateAutoWidth() {
+    const width = autoPreviewWidth();
+    widthField.value = width;
+    if (selectedWidth !== width) applyWidth(width);
+    else updatePreviewWidth(width);
+  }
+  resizePreview = () => {
+    if (current?.id !== project) return;
+    if (preview.dataset.widthMode === 'auto') updateAutoWidth();
+    else updatePreviewWidth(selectedWidth);
+  };
+  function useDevicePreset(device) {
+    widthFeedback.textContent = '';
+    const desktop = device === 'desktop';
+    const width = desktop ? autoPreviewWidth() : previewPresets[device];
+    setWidthMode(desktop ? 'auto' : 'preset');
+    widthField.value = width;
+    applyWidth(width);
+  }
+  autoWidthButton.onclick = () => useDevicePreset('desktop');
+  for (const button of deviceButtons) {
+    button.onclick = () => useDevicePreset(button.value);
+  }
+  function applyManualWidth(width) {
+    widthFeedback.textContent = '';
+    setWidthMode('manual');
+    applyWidth(width);
+  }
+  widthField.oninput = () => {
+    if (widthField.validity.valid) applyManualWidth(widthField.valueAsNumber);
+    else if (widthField.value) widthFeedback.textContent = '請輸入 240–4096 px。';
+  };
+  widthSlider.oninput = () => {
+    widthField.value = widthSlider.value;
+    applyManualWidth(widthSlider.valueAsNumber);
+  };
+  widthField.onblur = () => {
+    if (!widthField.validity.valid) widthField.value = selectedWidth;
+    widthFeedback.textContent = '';
+  };
+  individual.ontoggle = () => { if (current?.id === project) refresh(); };
+  useDevicePreset(deviceAtWidth(document.documentElement.clientWidth));
+}
+const importForm = $('import');
+const parseButton = $('parse-page');
+const importModes = $('import-modes');
+const importModeFields = [...importForm.querySelectorAll('[data-import-mode]')];
+const importSources = [...importForm.querySelectorAll('[data-clear-file]')].map(clear => ({
+  clear, input: $(clear.dataset.clearFile), selection: clear.parentElement
+}));
+let parsingPage = false;
+function setImportProgress(percent,label) {
+  $('import-progress').value = percent;
+  $('import-percentage').textContent = percent+'%';
+  const phase = $('import-phase');
+  if (phase.textContent !== label) phase.textContent = label;
+}
+async function importPage(data) {
+  const response = await fetch('/import',{method:'POST',
+    headers:{'Content-Type':'application/json',Accept:'application/x-ndjson'},body:JSON.stringify(data)});
+  if (!response.ok) {
+    const result = await response.json();
+    throw Error(result.error || '解析網頁失敗。');
+  }
+  let buffered = '';
+  for await (const chunk of response.body.pipeThrough(new TextDecoderStream())) {
+    buffered += chunk;
+    const lines = buffered.split('\n');
+    buffered = lines.pop();
+    for (const line of lines) {
+      const message = JSON.parse(line);
+      if (message.error) throw Error(message.error);
+      if (message.result) return message.result;
+      setImportProgress(message.percent,message.label);
+    }
+  }
+  throw Error('解析進度中斷，請重新解析。');
+}
+function selectedImport() {
+  const mode = importModes.querySelector(':checked').value;
+  const entry = mode === 'zip' ? $('zip-entry').files[0] : mode === 'html' ? $('entry').files[0] : undefined;
+  const folder = mode === 'zip' ? [] : [...$(mode === 'html' ? 'materials' : 'folder').files];
+  const browserArchive = $('browser-archive').files[0];
+  const hasPage = mode === 'folder' ? folder.some(file => /\.html?$/i.test(file.name)) :
+    (mode === 'zip' ? /\.zip$/i : /\.html?$/i).test(entry?.name ?? '');
+  return {mode,entry,folder,browserArchive,hasPage};
+}
+function refreshImportControls() {
+  const {mode,browserArchive,hasPage} = selectedImport();
+  for (const group of importModeFields) group.hidden = group.dataset.importMode !== mode;
+  $('archive-selection').textContent = browserArchive?.name ?? '';
+  parseButton.disabled = parsingPage || !hasPage;
+  importModes.disabled = parsingPage;
+  $('fetch-images').disabled = parsingPage;
+  importToggle.setAttribute('aria-disabled',String(parsingPage));
+  importForm.setAttribute('aria-busy',String(parsingPage));
+  for (const {clear,input,selection} of importSources) {
+    const file = input.files[0];
+    selection.hidden = !file;
+    selection.firstElementChild.textContent = file ? file.webkitRelativePath.split('/')[0] || file.name : '';
+    clear.disabled = input.disabled = parsingPage;
+  }
+}
+function resetImportForm() {
+  importForm.reset();
+  importForm.querySelector('.import-archive').open = false;
+  status.textContent = '';
+  refreshImportControls();
+}
+importToggle.onclick = () => {
+  if (parsingPage) return;
+  if (importPanel.hidden) resetImportForm();
+  showImportPanel(importPanel.hidden);
+};
+importModes.addEventListener('change',refreshImportControls);
+for (const {clear,input} of importSources) {
+  input.addEventListener('change',refreshImportControls);
+  clear.onclick = () => {
+    input.value = '';
+    refreshImportControls();
+    input.focus({preventScroll:true});
+  };
+}
+window.addEventListener('pageshow',refreshImportControls);
+refreshImportControls();
+importForm.onsubmit = async event => {
+  event.preventDefault();
+  if (parseButton.disabled) return;
+  const {entry,folder,browserArchive} = selectedImport();
+  const fetchMedia = $('fetch-images').checked;
+  parsingPage = true;
+  refreshImportControls();
+  current = null;
+  $('workspace').hidden = true;
+  $('page').removeAttribute('src');
+  $('logo-restore').setAttribute('aria-disabled','true');
+  $('export').setAttribute('aria-disabled','true');
+  $('export').removeAttribute('href');
+  status.textContent = '';
+  $('import-progress-area').hidden = false;
+  setImportProgress(0,'讀取本機檔案');
+  try {
+    const files = [...(entry ? [entry] : []),...folder];
+    if (files.reduce((total,file) => total+file.size,browserArchive?.size || 0) > 80*1024*1024) throw Error('匯入上限為 80 MB。');
+    const items = [];
+    const total = files.length + Number(Boolean(browserArchive));
+    for (const file of files) {
+      let path = file.webkitRelativePath || file.name;
+      if (!entry && file.webkitRelativePath) path = path.slice(path.indexOf('/')+1);
+      items.push({path,data:(await readFile(file)).split(',')[1]});
+      setImportProgress(Math.floor(10*items.length/total),'讀取本機檔案');
+    }
+    const archiveData = browserArchive ? (await readFile(browserArchive)).split(',')[1] : undefined;
+    setImportProgress(10,'送出檔案供解析');
+    current = await importPage({items,fetchImages:fetchMedia,fetchFonts:fetchMedia,browserArchive:archiveData});
+    setImportProgress(100,'解析完成');
+    $('import-label').textContent = '重新匯入';
+    if (importPanel.contains(document.activeElement)) importToggle.focus({preventScroll:true});
+    showImportPanel(false);
+    display(current);
+    status.textContent = '已匯入 '+current.entry;
+  } catch(error) {
+    showImportPanel(true);
+    status.textContent = error.message;
+  }
+  finally {
+    parsingPage = false;
+    $('import-progress-area').hidden = true;
+    refreshImportControls();
+  }
+};
+</script></body></html>
