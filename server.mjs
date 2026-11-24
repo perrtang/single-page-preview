@@ -142,6 +142,10 @@ const server = http.createServer(async (req,res) => {
   const [action,id,...segments] = parts;
   const project = projects.get(id);
   try {
+    if (url.pathname === '/parser-i18n.js' && req.method === 'GET') {
+      const script = await readFile(new URL('./parser-i18n.js', import.meta.url));
+      return send(res, 200, script, { 'Content-Type': 'text/javascript; charset=utf-8' });
+    }
     if (url.pathname === '/' && req.method === 'GET') {
       const ancestors = url.searchParams.get('embedded') === '1' ? frameAncestors() : "'none'";
       return send(res,200,app,{'Content-Type':types['.html'],'Content-Security-Policy':'frame-ancestors '+ancestors});
