@@ -247,7 +247,7 @@
     const button = document.getElementById('language-toggle');
     if (!button) return;
     button.hidden = false;
-    button.textContent = locale === 'zh-TW' ? 'EN' : '中文';
+    document.getElementById('language-label').textContent = locale === 'zh-TW' ? 'EN' : '中文';
     button.setAttribute('aria-label', locale === 'zh-TW' ? '切換為英文' : 'Switch to Traditional Chinese');
     button.title = button.getAttribute('aria-label');
   };

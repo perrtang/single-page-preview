@@ -6,16 +6,14 @@
 body{margin:0}header{padding:24px max(24px,4vw);background:#242321;color:white}h1{font-size:24px;margin:0}
 .app-header{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px 12px}
 .app-controls{display:flex;align-items:center;gap:4px;margin-inline-start:auto;position:relative}
-#toolbar-menu{display:flex;align-items:center;gap:4px}
+#toolbar-menu,.toolbar-group{display:flex;align-items:center;gap:4px}
+.toolbar-divider{flex:none;width:1px;height:18px;margin-inline:4px;background:#686259}
 #toolbar-menu-toggle{display:none}
 .app-controls .header-action{display:inline-flex;align-items:center;gap:5px;justify-content:center;min-height:36px;padding:0 8px;border:0;border-radius:4px;background:transparent;color:white;font:13px/1.2 system-ui,sans-serif;white-space:nowrap;text-decoration:none;cursor:pointer}
 #account-action[hidden]{display:none}
-#account-action{position:relative;margin-inline-start:5px;padding-inline-start:10px}
-#account-action::before{content:'';position:absolute;inset-inline-start:0;inset-block:9px;width:1px;background:#686259;pointer-events:none}
-#language-toggle{margin-inline-start:8px}
+#language-toggle:not(:first-child){margin-inline-start:4px}
+#account-action[hidden] + #language-toggle{margin-inline-start:0}
 .app-controls .header-action svg{width:16px;height:16px}
-#import-toggle{position:relative;margin-inline-end:8px}
-#import-toggle::after{content:'';position:absolute;inset-inline-end:-6px;inset-block:9px;width:1px;background:#686259;pointer-events:none}
 .app-controls .header-action[aria-disabled=true]{opacity:.4;cursor:default}
 .app-controls .header-action:not([aria-disabled=true]):is(:hover,:focus-visible){background:#46423e}
 .app-controls .header-action:focus-visible{outline:2px solid white;outline-offset:2px}
@@ -24,10 +22,7 @@ body{margin:0}header{padding:24px max(24px,4vw);background:#242321;color:white}h
   .app-header{padding:16px max(16px,4vw)}
   .app-header h1{font-size:18px}
   .app-controls{gap:2px}
-  #import-toggle{margin-inline-end:6px}
-  #import-toggle::after{inset-inline-end:-5px}
   .app-controls .header-action{padding-inline:4px;gap:4px}
-  .app-controls .header-action svg{width:16px;height:16px}
 }
 .app-controls[data-overflow=true] #toolbar-menu-toggle{display:grid;width:36px;height:36px;padding:0;place-items:center}
 .app-controls[data-overflow=true] #toolbar-menu{display:none;position:absolute;z-index:8;inset-block-start:calc(100% + 8px);inset-inline-end:0;min-width:176px;padding:6px;background:#242321;border:1px solid #686259;box-shadow:0 8px 20px #0004;align-items:stretch;gap:0}
@@ -35,10 +30,9 @@ body{margin:0}header{padding:24px max(24px,4vw);background:#242321;color:white}h
 .app-controls[data-overflow=true] #toolbar-menu .header-action{justify-content:flex-start;width:100%;padding-inline:10px}
 .app-controls[data-overflow=true] #toolbar-menu .action-tip{display:flex}
 .app-controls[data-overflow=true] #toolbar-menu .action-tip .header-action{flex:1}
-.app-controls[data-overflow=true] #toolbar-menu #import-toggle{margin-inline-end:0}
-.app-controls[data-overflow=true] #toolbar-menu #import-toggle::after,.app-controls[data-overflow=true] #toolbar-menu #account-action::before{display:none}
-.app-controls[data-overflow=true] #toolbar-menu #account-action{margin-inline-start:0;padding-inline-start:10px}
-.app-controls[data-overflow=true] #toolbar-menu #language-toggle{margin:6px 0 0;border-top:1px solid #686259;border-radius:0;padding-top:9px}
+.app-controls[data-overflow=true] #toolbar-menu[data-open=true] .toolbar-group{flex-direction:column;align-items:stretch;gap:0}
+.app-controls[data-overflow=true] #toolbar-menu[data-open=true] .toolbar-divider{width:auto;height:1px;margin:4px 0}
+.app-controls[data-overflow=true] #toolbar-menu[data-open=true] #language-toggle{margin-inline-start:0}
 main{padding:24px max(16px,4vw)}h2{font-size:18px;margin:0 0 10px}p{margin:0 0 12px}
 form,.panel{background:white;padding:20px;border:1px solid #d9d5ce;margin-bottom:16px;max-width:100%}
 .toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px}
@@ -137,8 +131,6 @@ button.primary{background:#242321;color:white;border-color:#242321}button:disabl
 .width-adjustment .action-tip:has(button[hidden]){visibility:hidden;pointer-events:none}
 #preview-width-slider{width:clamp(64px,22vw,112px);height:44px;margin:0;accent-color:#395d75;cursor:ew-resize}
 @media(max-width:350px){
-  .app-controls .header-action{padding-inline:2px;font-size:14px}
-  #language-toggle{margin-inline-start:4px}
   .width-controls,.width-adjustment{width:100%}
   #preview-width-slider{flex:1;min-width:0}
 }
@@ -217,7 +209,11 @@ details{margin-top:8px}#workspace[hidden]{display:none}
 <div class="app-controls" role="group" aria-label="頁面操作">
 <button id="toolbar-menu-toggle" class="header-action" type="button" aria-label="開啟工具選單" aria-expanded="false" aria-controls="toolbar-menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 <div id="toolbar-menu">
+<div class="toolbar-group">
 <button id="import-toggle" class="header-action" type="button" aria-controls="import-panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V6a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v3M3 19h15.5l3-8H6l-3 8Z"/></svg><span id="import-label">匯入</span></button>
+</div>
+<span class="toolbar-divider" aria-hidden="true"></span>
+<div class="toolbar-group">
 <span class="action-tip">
 <button id="logo-restore" class="header-action" type="button" aria-describedby="restore-tip" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v6h6M3.5 10a8.5 8.5 0 1 1 .9 7"/></svg>重置</button>
 <span id="restore-tip" role="tooltip">重置為原始的解析畫面</span>
@@ -226,8 +222,12 @@ details{margin-top:8px}#workspace[hidden]{display:none}
 <a id="export" class="header-action" role="link" download aria-label="下載頁面 ZIP" aria-describedby="export-tip" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></svg>下載</a>
 <span id="export-tip" role="tooltip">下載頁面 ZIP（包含目前調整）</span>
 </span>
-<button id="account-action" class="header-action" type="button" hidden>帳號</button>
-<button id="language-toggle" class="header-action" type="button" aria-label="切換為英文" title="切換為英文">EN</button>
+</div>
+<span class="toolbar-divider" aria-hidden="true"></span>
+<div class="toolbar-group">
+<button id="account-action" class="header-action" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.25"/><path d="M5 20v-1.5a7 5 0 0 1 14 0V20"/></svg>帳號</button>
+<button id="language-toggle" class="header-action" type="button" aria-label="切換為英文" title="切換為英文"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="4" ry="8.5"/><path d="M3.5 12h17"/></svg><span id="language-label">EN</span></button>
+</div>
 </div>
 </div>
 </header>
