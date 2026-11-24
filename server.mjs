@@ -14,7 +14,7 @@ import { tokenize, isTokenURL, isTokenFunction, isTokenString, isTokenCloseParen
 import { chromium } from 'playwright-core';
 
 const port = Number(process.env.PORT || 8882);
-const origin = 'http://127.0.0.1:'+port;
+let origin;
 const browser = await chromium.launch({executablePath:process.env.CHROME_PATH});
 const app = await readFile(new URL('./index.html',import.meta.url));
 const projects = new Map();
@@ -128,7 +128,6 @@ function rewriteCssAssets(css, resolve) {
   }
   return position ? result+css.slice(position) : css;
 }
-const isolated = {'Content-Security-Policy':policy+'; sandbox allow-scripts; frame-ancestors '+origin, 'Referrer-Policy':'no-referrer'};
 const server = http.createServer(async (req,res) => {
   if (req.headers.host !== new URL(origin).host) return send(res,403,'Forbidden');
   const url = new URL(req.url,origin);
@@ -138,6 +137,7 @@ const server = http.createServer(async (req,res) => {
   try {
     if (url.pathname === '/' && req.method === 'GET') return send(res,200,app,{'Content-Type':types['.html']});
     if (action === 'preview' && project && req.method === 'GET') {
+      const isolated = {'Content-Security-Policy':policy+'; sandbox allow-scripts; frame-ancestors '+origin, 'Referrer-Policy':'no-referrer'};
       const path = pathName(segments.map(decodeURIComponent).join('/').normalize('NFC'));
       if (path === project.entry) {
         const html = url.searchParams.has('initial') && project.initialMarkup
@@ -483,7 +483,14 @@ const server = http.createServer(async (req,res) => {
     json(res,400,{error:error.message});
   }
 });
-server.listen(port,'127.0.0.1',() => console.log(origin));
-for (const signal of ['SIGINT','SIGTERM']) process.on(signal,async () => {await browser.close();
+server.listen(port,'127.0.0.1',() => {
+  origin = 'http://127.0.0.1:'+server.address().port;
+  if (process.send) process.send({origin});
+  else console.log(origin);
+});
+async function shutdown() {
+  server.close();
+  await browser.close();
   await Promise.all([...projects.values()].map(p => p.imageCache && rm(p.imageCache,{recursive:true,force:true})));
-  server.close();});
+}
+for (const signal of ['SIGINT','SIGTERM','disconnect']) process.once(signal,shutdown);

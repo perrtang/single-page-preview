@@ -31,6 +31,17 @@ npm start
 
 完整流程、各項設定及支援範圍請見[功能與操作指南](docs/guide.md)。
 
+## CLI 與 MCP
+
+完成上方安裝後，可在終端機解析網頁或產出離線 ZIP。
+
+```sh
+node cli.mjs inspect examples/demo.html
+node cli.mjs convert examples/demo.html --output demo-preview.zip
+```
+
+支援本機 `stdio` 的 MCP 客戶端可啟動 `mcp.mjs`，呼叫 `inspect_page` 和 `convert_page`。設定範例、檔案範圍及回傳格式請見 [CLI 與 MCP 指南](docs/cli-mcp.md)。
+
 ## 執行方式與授權
 
 工具在 `127.0.0.1` 執行，採單人本機工作流程。勾選素材補齊時會從公開 HTTPS 網址直接取得圖片或字型。關閉該選項，便可使用已準備好的本機檔案離線轉換。
