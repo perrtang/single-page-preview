@@ -16,6 +16,10 @@ npm start
 
 開啟 [http://127.0.0.1:8882/](http://127.0.0.1:8882/)。工具在本機啟動，瀏覽器安裝完成後即可使用。Chromium 在 Linux 所需的系統套件請參考 [Playwright 瀏覽器安裝文件](https://playwright.dev/docs/browsers#install-system-dependencies)。
 
+## 從公開入口開啟工具
+
+先於本機執行上方的 `npm start`，使用預設的 8882 埠，再登入 [Single-Page Parser](https://thesense-single-page-parse.web.app/)。登入後會連接這台電腦上的工具。若瀏覽器詢問是否允許連線至本機，請依畫面指示操作。連線失敗時可直接開啟終端機顯示的本機網址。
+
 ## 三步試用
 
 1. 在匯入面板選 **HTML**，選擇 repo 裡的 [examples/demo.html](examples/demo.html)，再按 **解析網頁**。

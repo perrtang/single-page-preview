@@ -128,6 +128,13 @@ function rewriteCssAssets(css, resolve) {
   }
   return position ? result+css.slice(position) : css;
 }
+const portalOrigins = [
+  'https://single-page-parse.thesense.biz',
+  'https://thesense-single-page-parse.web.app',
+  'https://thesense-single-page-parse.firebaseapp.com',
+];
+if (process.env.PAGE_PARSER_PORTAL_PREVIEW === '1') portalOrigins.push('http://127.0.0.1:8936');
+const frameAncestors = () => [origin, ...portalOrigins].join(' ');
 const server = http.createServer(async (req,res) => {
   if (req.headers.host !== new URL(origin).host) return send(res,403,'Forbidden');
   const url = new URL(req.url,origin);
@@ -135,9 +142,12 @@ const server = http.createServer(async (req,res) => {
   const [action,id,...segments] = parts;
   const project = projects.get(id);
   try {
-    if (url.pathname === '/' && req.method === 'GET') return send(res,200,app,{'Content-Type':types['.html']});
+    if (url.pathname === '/' && req.method === 'GET') {
+      const ancestors = url.searchParams.get('embedded') === '1' ? frameAncestors() : "'none'";
+      return send(res,200,app,{'Content-Type':types['.html'],'Content-Security-Policy':'frame-ancestors '+ancestors});
+    }
     if (action === 'preview' && project && req.method === 'GET') {
-      const isolated = {'Content-Security-Policy':policy+'; sandbox allow-scripts; frame-ancestors '+origin, 'Referrer-Policy':'no-referrer'};
+      const isolated = {'Content-Security-Policy':policy+'; sandbox allow-scripts; frame-ancestors '+frameAncestors(), 'Referrer-Policy':'no-referrer'};
       const path = pathName(segments.map(decodeURIComponent).join('/').normalize('NFC'));
       if (path === project.entry) {
         const html = url.searchParams.has('initial') && project.initialMarkup
