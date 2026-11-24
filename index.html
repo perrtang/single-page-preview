@@ -1,12 +1,15 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>單頁展示轉換工具</title>
+<title>Single-Page Parser 網頁解析器</title>
 <style>
 :root{font:15px/1.5 system-ui,sans-serif;color:#231f20;background:#f6f5f2}*{box-sizing:border-box}
 body{margin:0}header{padding:24px max(24px,4vw);background:#242321;color:white}h1{font-size:24px;margin:0}
 .app-header{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px 12px}
 .app-controls{display:flex;align-items:center;gap:4px;margin-inline-start:auto}
 .app-controls .header-action{display:inline-flex;align-items:center;gap:6px;justify-content:center;min-height:44px;padding:0 10px;border:0;border-radius:4px;background:transparent;color:white;font:inherit;white-space:nowrap;text-decoration:none;cursor:pointer}
+#account-action[hidden]{display:none}
+#account-action{position:relative;margin-inline-start:5px;padding-inline-start:12px}
+#account-action::before{content:'';position:absolute;inset-inline-start:0;inset-block:13px;width:1px;background:#686259;pointer-events:none}
 .app-controls .header-action svg{width:18px;height:18px}
 #import-toggle{position:relative;margin-inline-end:8px}
 #import-toggle::after{content:'';position:absolute;inset-inline-end:-6px;inset-block:13px;width:1px;background:#686259;pointer-events:none}
@@ -195,7 +198,7 @@ table{border-collapse:collapse;width:100%;max-width:620px;font-variant-numeric:t
 details{margin-top:8px}#workspace[hidden]{display:none}
 </style></head><body>
 <header class="app-header">
-<h1>單頁展示轉換工具</h1>
+<h1>Single-Page Parser 網頁解析器</h1>
 <div class="app-controls" role="group" aria-label="頁面操作">
 <button id="import-toggle" class="header-action" type="button" aria-controls="import-panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 19V6a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v3M3 19h15.5l3-8H6l-3 8Z"/></svg><span id="import-label">匯入</span></button>
 <span class="action-tip">
@@ -206,6 +209,7 @@ details{margin-top:8px}#workspace[hidden]{display:none}
 <a id="export" class="header-action" role="link" download aria-label="下載頁面 ZIP" aria-describedby="export-tip" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></svg>下載</a>
 <span id="export-tip" role="tooltip">下載頁面 ZIP（包含目前調整）</span>
 </span>
+<button id="account-action" class="header-action" type="button" hidden>帳號</button>
 </div>
 </header>
 <main>
@@ -379,6 +383,12 @@ const $ = id => document.getElementById(id);
 if (window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1') {
   window.addEventListener('message',event => {
     if (event.source !== window.parent || event.data !== 'single-page-parser:connect') return;
+    const account = $('account-action');
+    account.hidden = false;
+    account.onclick = () => window.parent.postMessage({
+      type: 'single-page-parser:account',
+      bottom: account.getBoundingClientRect().bottom,
+    },event.origin);
     window.parent.postMessage('single-page-parser:ready',event.origin);
   });
 }
