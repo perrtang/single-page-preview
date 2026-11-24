@@ -377,10 +377,10 @@ details{margin-top:8px}#workspace[hidden]{display:none}
 <script>
 const $ = id => document.getElementById(id);
 if (window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1') {
-  try {
-    const openerOrigin = new URL(document.referrer).origin;
-    window.parent.postMessage('single-page-parser:ready',openerOrigin);
-  } catch { /* Browsers can suppress the referrer. The portal offers a direct link. */ }
+  window.addEventListener('message',event => {
+    if (event.source !== window.parent || event.data !== 'single-page-parser:connect') return;
+    window.parent.postMessage('single-page-parser:ready',event.origin);
+  });
 }
 
 const status = $('status');
