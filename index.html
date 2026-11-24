@@ -587,8 +587,19 @@ function renderLogoControls(report) {
   const pendingSizes = new Map();
 
   const measurements = new Map(report.after.map(row => [row.previewWidth,row.logos]));
-  const rowsAtWidth = () => measurements.get(selectedWidth) || [];
-  const metrics = logo => rowsAtWidth().find(row => row.id === logo.id);
+  function nearestMeasuredWidth() {
+    let nearest;
+    for (const width of measurements.keys()) {
+      if (deviceAtWidth(width) !== deviceAtWidth(selectedWidth)) continue;
+      if (nearest === undefined || Math.abs(width-selectedWidth) < Math.abs(nearest-selectedWidth)) nearest = width;
+    }
+    return nearest;
+  }
+  function metrics(logo) {
+    const rows = measurements.get(selectedWidth) ?? measurements.get(nearestMeasuredWidth()) ?? [];
+    const positions = rows.filter(row => row.id === logo.id);
+    return positions.find(row=>row.visible) ?? positions.find(row=>row.available) ?? positions[0];
+  }
   const shown = () => states.filter(logo => metrics(logo)?.available);
   function refresh(preview = report.preview, focusedSlide) {
     const url = new URL(preview,location.origin);
@@ -1023,8 +1034,9 @@ function renderLogoControls(report) {
     if (current?.id === project) window.location.assign(exportLink.href);
   };
   function describePosition() {
+    const nearest = nearestMeasuredWidth();
     $('logo-preview-note').textContent = !measurements.has(selectedWidth)
-      ? '正在確認這個寬度的 Logo 位置。'
+      ? nearest === undefined ? '尚無此寬度的量測結果。' : '暫時顯示 '+nearest+' px 的 Logo 位置。'
       : !selected ? '這個寬度沒有可調整的 Logo。'
       : selected.hasVariants && !metrics(selected)?.visible
         ? '正在預覽「'+selected.label+'」。匯出後會依原網頁狀態切換。'
@@ -1033,7 +1045,9 @@ function renderLogoControls(report) {
 
   function syncPositions() {
     const available = shown();
-    selected = available.find(logo => metrics(logo).visible && logo.visible) || available[0];
+    if (!available.includes(selected)) {
+      selected = available.find(logo => metrics(logo).visible && logo.visible) || available[0];
+    }
     positions.replaceChildren(...available.map(logo => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -1146,7 +1160,7 @@ function renderLogoControls(report) {
       } catch(error) {
         if (current?.id === project && request === measuredRequest) {
           message.textContent = '無法確認 Logo 位置。可重新輸入寬度再試。';
-          $('logo-preview-note').textContent = '';
+          describePosition();
         }
       }
     },180);
