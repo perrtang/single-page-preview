@@ -655,28 +655,48 @@ export const logoDevices = Object.keys(defaultLogoSize);
 export const logoSizeLimits = {min:12,mobile:64,tablet:128,desktop:128,offset:100,width:{mobile:176,tablet:360,desktop:360}};
 
 export function previewMarkup(project, focusedLogo, focusedSlide) {
-  let markup;
   const focus = /^(0|[1-9]\d{0,2})-(0|[1-9]\d{0,2})$/.exec(focusedSlide || '');
-  const gallery = focus && project.dom.window.document.querySelector('[data-converter-slideshow-id="'+focus[1]+'"]');
+  const document = project.dom.window.document;
+  const gallery = focus && document.querySelector('[data-converter-slideshow-id="'+focus[1]+'"]');
   const slides = gallery ? [...gallery.querySelectorAll(':scope > details')] : [];
   const targetSlide = focus && slides[Number(focus[2])];
-  if (targetSlide) {
-    const open = slides.find(slide => slide.open);
+  const open = targetSlide && slides.find(slide => slide.open);
+  const logo = /^(?:0|[1-9][0-9]?)$/.test(focusedLogo || '') && project.logos.find(logo => logo.id === Number(focusedLogo));
+  if (targetSlide && targetSlide !== open) {
     open?.removeAttribute('open');
-    targetSlide.setAttribute('open','');
-    try { markup = project.dom.serialize(); }
-    finally {
-      targetSlide.removeAttribute('open');
-      open?.setAttribute('open','');
+    targetSlide.open = true;
+  }
+  try {
+    if (!logo) return project.dom.serialize();
+    return focusedLogoMarkup(project.dom,logo);
+  } finally {
+    if (targetSlide && targetSlide !== open) {
+      targetSlide.open = false;
+      if (open) open.open = true;
     }
-  } else markup = project.dom.serialize();
-  if (!/^(?:0|[1-9][0-9]?)$/.test(focusedLogo || '') ||
-      !project.logos.some(logo => logo.id === Number(focusedLogo) && logo.hasVariants)) return markup;
-  const target = '[data-converter-logo="'+focusedLogo+'"]';
+  }
+}
+
+function focusedLogoMarkup(dom,logo) {
+  const document = dom.window.document;
+  const focusedLogo = logo.id;
+  const target = '[data-converter-logo="'+focusedLogo+'"]:not([data-converter-logo-hidden],[data-converter-logo-part])';
   const slot = '[data-converter-logo-variants]:has(> '+target+')';
-  const style = '<style>'+slot+' > [data-converter-logo]:not('+target+') {opacity:0!important;}'+
-    slot+' > '+target+':not([data-converter-logo-hidden]) {display:block!important;visibility:visible!important;opacity:1!important;}</style>';
-  return markup.replace('</head>',style+'</head>');
+  const variantStyle = logo.hasVariants ? slot+' > [data-converter-logo]:not('+target+') {opacity:0!important;}'+
+    slot+' > '+target+' {display:block!important;visibility:visible!important;opacity:1!important;}' : '';
+  const style = '<style>'+variantStyle+
+    '[data-converter-located-logo] {outline:3px solid #facc15!important;outline-offset:3px!important;'+
+    'box-shadow:0 0 0 3px #171717,0 0 0 7px #171717!important;}</style>';
+  // The saved page DOM is shared by preview and export. Mark only the returned preview.
+  const targets = document.querySelectorAll(target);
+  for (const node of targets) node.setAttribute('data-converter-preview-logo','');
+  try {
+    const preview = dom.serialize().replace(/<\/head>/i,()=>style+'</head>');
+    return document.querySelector('script') ? preview :
+      preview.replace(/<\/body>/i,()=>'<script>'+playerSource+'</script></body>');
+  } finally {
+    for (const node of targets) node.removeAttribute('data-converter-preview-logo');
+  }
 }
 
 export function replaceLogo(dom, id, url, size = defaultLogoSize) {

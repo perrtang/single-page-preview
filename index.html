@@ -680,14 +680,15 @@ function renderLogoControls(report) {
     return positions.find(row=>row.visible) ?? positions.find(row=>row.available) ?? positions[0];
   }
   const shown = () => states.filter(logo => metrics(logo)?.available);
-  function refresh(preview = report.preview, focusedSlide) {
-    const url = new URL(preview,location.origin);
+  function refresh(address = report.preview, focusedSlide, revealLogo = false) {
+    const url = new URL(address,location.origin);
     url.searchParams.set('updated',Date.now());
     if (focusedSlide) url.searchParams.set('slideFocus',focusedSlide);
-    if (!logoPanel.hidden && individual.open && selected?.hasVariants && !metrics(selected)?.visible) {
+    if (!logoPanel.hidden && individual.open && selected?.visible) {
       url.searchParams.set('logoFocus',selected.id);
     }
     $('page').src = url.href;
+    if (revealLogo) preview.scrollIntoView({block:'end',inline:'nearest',behavior:'instant'});
   }
 
   function updateLogo(action, pending, onSuccess, {keepSizeFocus = false, onFailure, output = message} = {}) {
@@ -961,7 +962,7 @@ function renderLogoControls(report) {
       button.setAttribute('aria-pressed',String(open));
       $(button.getAttribute('aria-controls')).hidden = !open;
     }
-    if (logoWasHidden !== logoPanel.hidden && individual.open && selected?.hasVariants && !metrics(selected)?.visible) refresh();
+    if (logoWasHidden !== logoPanel.hidden && individual.open && selected) refresh();
   }
   showFeature();
   for (const button of featureButtons) {
@@ -1160,7 +1161,7 @@ function renderLogoControls(report) {
         button.setAttribute('aria-pressed','true');
         showPosition();
         describePosition();
-        refresh();
+        refresh(report.preview,undefined,logo.visible);
       };
       return button;
     }));

@@ -321,6 +321,24 @@ function playSlideshows() {
   }
 }
 
-export const playerSource = [playSlideshows,enableMobileNavigation,enableCarouselTracks,enableMarquees]
+function locatePreviewLogo() {
+  const targets = document.querySelectorAll('[data-converter-preview-logo]');
+  if (!targets.length) return;
+  function locate() {
+    const logo = [...targets].find(node => node.getClientRects().length &&
+      node.checkVisibility({opacityProperty:true,visibilityProperty:true}));
+    if (!logo) return;
+    logo.setAttribute('data-converter-located-logo','');
+    logo.scrollIntoView({block:'center',inline:'nearest',behavior:'instant',container:'nearest'});
+    const rect = logo.getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > innerHeight) {
+      scrollBy({top:(rect.top + rect.bottom - innerHeight) / 2,behavior:'instant'});
+    }
+  }
+  if (document.readyState === 'complete') locate();
+  else addEventListener('load',locate,{once:true});
+}
+
+export const playerSource = [playSlideshows,enableMobileNavigation,enableCarouselTracks,enableMarquees,locatePreviewLogo]
   .map(run=>'('+run.toString()+')();').join('');
 export const playerPolicy = "script-src 'sha256-"+createHash('sha256').update(playerSource).digest('base64')+"'";
