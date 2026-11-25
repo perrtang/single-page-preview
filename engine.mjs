@@ -55,6 +55,9 @@ export function prepare(html, hasAsset = () => false, imageAsset = source => has
       if (/^on/i.test(name) || /^data-converter-/.test(name)) node.removeAttribute(name);
     }
   });
+  // The Qode cursor captures a stale position once the theme's mousemove handler is removed.
+  document.body.classList.remove('qodef-custom-cursor-enabled');
+  document.getElementById('qodef-custom-cursor')?.remove();
   // A saved ScrollSmoother viewport has a fixed shell and a synthetic body height.
   // Once its script is removed, let the content participate in native document scrolling.
   const smoothWrapper = document.querySelector('#smooth-wrapper:has(> #smooth-content)');

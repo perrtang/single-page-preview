@@ -46,6 +46,11 @@ export function prepareMobileNavigation(document) {
       if (menu?.matches('.sc_layouts_panel')) connectDialog(trigger,menu,'side','側邊選單','.sc_layouts_panel_close');
     } catch { /* Leave malformed targets to the regular import handling. */ }
   }
+  const qodeSideArea = document.querySelector('#qodef-side-area:has(#qodef-side-area-close)');
+  if (qodeSideArea) for (const trigger of document.querySelectorAll('header .qodef-side-area-opener')) {
+    document.body.classList.remove('qodef-side-area--opened');
+    connectDialog(trigger,qodeSideArea,'qode-side','側邊選單','#qodef-side-area-close');
+  }
   const mobileDialog = document.querySelector('.menu_mobile:has(.menu_mobile_nav_area)');
   if (mobileDialog) for (const trigger of document.querySelectorAll('header .sc_layouts_menu_mobile_button > a,header .menu_mobile_button')) {
     connectDialog(trigger,mobileDialog,'mobile','選單','.menu_mobile_close');
@@ -90,7 +95,11 @@ export function prepareMobileNavigation(document) {
   style.textContent = `
     [data-converter-navigation][hidden], [data-converter-nav-submenu][hidden] { display:none !important; }
     [data-converter-navigation]:not([hidden]), [data-converter-nav-submenu]:not([hidden]) { display:block !important; }
+    [data-converter-nav-dialog-trigger], [data-converter-nav-close],
     [data-converter-nav-toggle], [data-converter-nav-subtoggle] { cursor:pointer; }
+    #qodef-side-area[data-converter-nav-dialog="qode-side"] { max-width:100%; overflow-y:auto; }
+    body:has([data-converter-nav-dialog="qode-side"][inert]) .qodef-side-area-cover { pointer-events:none; }
+    [data-converter-nav-dialog-trigger]:focus-visible, [data-converter-nav-close]:focus-visible,
     [data-converter-nav-toggle]:focus-visible, [data-converter-nav-subtoggle]:focus-visible { outline:2px solid currentColor; outline-offset:3px; }
   `;
   document.head.append(style);
@@ -121,23 +130,31 @@ export function enableMobileNavigation() {
   for (const menu of document.querySelectorAll('[data-converter-nav-dialog]')) {
     const triggers = [...document.querySelectorAll('[data-converter-nav-dialog-trigger]')].filter(node=>node.getAttribute('aria-controls')===menu.id);
     const close = menu.querySelector('[data-converter-nav-close]');
-    const side = menu.dataset.converterNavDialog === 'side';
+    const kind = menu.dataset.converterNavDialog;
+    const side = kind === 'side';
+    const qodeSide = kind === 'qode-side';
     const overlaySelector = side ? '.sc_layouts_panel_hide_content' : '.menu_mobile_overlay';
-    const overlay = menu.previousElementSibling?.matches(overlaySelector) ? menu.previousElementSibling : null;
+    const overlay = qodeSide ? menu.parentElement.querySelector(':scope > .qodef-side-area-cover') :
+      menu.previousElementSibling?.matches(overlaySelector) ? menu.previousElementSibling : null;
     const modeClass = side ? 'sc_layouts_panel_opened' : 'opened';
     let opener;
     function setOpen(open) {
-      menu.classList.toggle(modeClass,open);
+      if (qodeSide) document.body.classList.toggle('qodef-side-area--opened',open);
+      else menu.classList.toggle(modeClass,open);
       menu.toggleAttribute('inert',!open);
       menu.setAttribute('aria-hidden',String(!open));
-      document.body.classList.toggle(side ? 'sc_layouts_panel_opened' : 'menu_mobile_opened',open);
+      if (!qodeSide) document.body.classList.toggle(side ? 'sc_layouts_panel_opened' : 'menu_mobile_opened',open);
       if (side) {
         const position = menu.dataset.panelPosition;
         if (['left','right','top','bottom'].includes(position)) document.body.classList.toggle(modeClass+'_'+position,open);
         overlay?.classList.toggle(modeClass,open);
-      } else if (overlay) overlay.style.display = open ? 'block' : 'none';
+      } else if (!qodeSide && overlay) overlay.style.display = open ? 'block' : 'none';
       for (const trigger of triggers) trigger.setAttribute('aria-expanded',String(open));
-      (open ? close : opener)?.focus({preventScroll:true});
+      if (qodeSide && open) {
+        requestAnimationFrame(() => {
+          if (!menu.hasAttribute('inert')) close.focus({preventScroll:true});
+        });
+      } else (open ? close : opener)?.focus({preventScroll:true});
     }
     for (const trigger of triggers) activate(trigger,()=>{
       opener = trigger;
