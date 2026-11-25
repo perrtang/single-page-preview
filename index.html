@@ -447,10 +447,11 @@ if (window.parent !== window && new URLSearchParams(location.search).get('embedd
     if (event.source !== window.parent || event.data !== 'single-page-parser:connect') return;
     const account = $('account-action');
     account.hidden = false;
-    account.onclick = () => window.parent.postMessage({
-      type: 'single-page-parser:account',
-      bottom: account.getBoundingClientRect().bottom,
-    },event.origin);
+    account.onclick = () => {
+      const anchor = toolbarMenuToggle.checkVisibility() ? toolbarMenuToggle : account;
+      const {bottom,right} = anchor.getBoundingClientRect();
+      window.parent.postMessage({type:'single-page-parser:account',bottom,right},event.origin);
+    };
     window.parent.postMessage('single-page-parser:ready',event.origin);
   });
 }
