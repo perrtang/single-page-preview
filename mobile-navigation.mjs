@@ -138,7 +138,7 @@ export function enableMobileNavigation() {
       menu.previousElementSibling?.matches(overlaySelector) ? menu.previousElementSibling : null;
     const modeClass = side ? 'sc_layouts_panel_opened' : 'opened';
     let opener;
-    function setOpen(open) {
+    function setOpen(open, moveFocus = true) {
       if (qodeSide) document.body.classList.toggle('qodef-side-area--opened',open);
       else menu.classList.toggle(modeClass,open);
       menu.toggleAttribute('inert',!open);
@@ -150,6 +150,7 @@ export function enableMobileNavigation() {
         overlay?.classList.toggle(modeClass,open);
       } else if (!qodeSide && overlay) overlay.style.display = open ? 'block' : 'none';
       for (const trigger of triggers) trigger.setAttribute('aria-expanded',String(open));
+      if (!moveFocus) return;
       if (qodeSide && open) {
         requestAnimationFrame(() => {
           if (!menu.hasAttribute('inert')) close.focus({preventScroll:true});
@@ -160,6 +161,10 @@ export function enableMobileNavigation() {
       opener = trigger;
       setOpen(menu.hasAttribute('inert'));
     });
+    if (menu.querySelector('[data-converter-preview-logo]')) {
+      opener = triggers.find(node => node.checkVisibility({opacityProperty:true,visibilityProperty:true}));
+      if (opener) setOpen(true,false);
+    }
     activate(close,()=>setOpen(false));
     if (overlay) overlay.addEventListener('click',()=>setOpen(false));
     enableSubmenus(menu);

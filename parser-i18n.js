@@ -175,9 +175,13 @@
         .replace(/^項目 (\d+)$/, 'Item $1')
         .replace(/^刪除項目 (\d+)$/, 'Delete item $1')
         .replace(/^更換 (.+)$/, 'Replace $1')
-        .replace(/^Logo (.+)滑桿$/, 'Logo $1 slider');
+        .replace(/^Logo (.+)滑桿$/, 'Logo $1 slider')
+        .replace(/^側邊面板 · /, 'Side panel · ')
+        .replace(/^手機選單 · /, 'Mobile menu · ');
     } else {
       text = text
+        .replace(/^Side panel · /, '側邊面板 · ')
+        .replace(/^Mobile menu · /, '手機選單 · ')
         .replace(/^Imported (.+)$/, '已匯入 $1')
         .replace(/^Found (\d+) logo positions\.$/, '已找到 $1 個 Logo 位置。')
         .replace(/^There are no adjustable logos at this width\.$/, '這個寬度沒有可調整的 Logo。')

@@ -577,8 +577,11 @@ export function prepare(html, hasAsset = () => false, imageAsset = source => has
     if (composite && logos.has(group)) node.dataset.converterLogoPart = '';
     if (!logos.has(group)) {
       if (logos.size >= 24) continue;
-      const section = context?.matches('footer,[role=contentinfo]') ? '頁尾' : context ? '頁首' : '頁面';
-      const name = node.getAttribute('alt') || node.getAttribute('aria-label') || link?.getAttribute('aria-label') || 'Logo';
+      const dialog = node.closest('[data-converter-nav-dialog]');
+      const section = dialog ? (dialog.dataset.converterNavDialog === 'mobile' ? '手機選單' : '側邊面板') :
+        context?.matches('footer,[role=contentinfo]') ? '頁尾' : context ? '頁首' : '頁面';
+      const label = node.getAttribute('alt') || node.getAttribute('aria-label') || link?.getAttribute('aria-label') || 'Logo';
+      const name = dialog && label.trim().length <= 1 ? 'Logo' : label;
       const desktopHeader = node.closest('[id$="-page-header"]');
       const mobileHeader = node.closest('[id$="-mobile-header"]');
       const themeVariant = node.classList.contains('qodef--light') ? '淺色' :
@@ -811,14 +814,19 @@ function updateLogoSlot(slot) {
 }
 
 function inspectLogoPositions() {
+  const accessibleDialogs = new Set([...document.querySelectorAll('[data-converter-nav-dialog-trigger]')]
+    .filter(node => node.checkVisibility({opacityProperty:true,visibilityProperty:true}))
+    .map(node => node.getAttribute('aria-controls')));
   return [...document.querySelectorAll('[data-converter-logo]:not([data-converter-logo-part])')].map(node => {
     const box = node.getBoundingClientRect();
     const variants = node.closest('[data-converter-logo-variants]');
     const inLayout = element => Boolean(element?.getClientRects().length);
+    const dialog = node.closest('[data-converter-nav-dialog]');
+    const available = (inLayout(node) || inLayout(variants)) && (!dialog || accessibleDialogs.has(dialog.id));
     const visible = box.width > 0 && box.height > 0 && node.checkVisibility({opacityProperty:true,visibilityProperty:true});
     const intrinsicWidth = node.naturalWidth || node.viewBox?.baseVal?.width || box.width;
     const intrinsicHeight = node.naturalHeight || node.viewBox?.baseVal?.height || box.height;
-    return {id:Number(node.dataset.converterLogo),available:inLayout(node) || inLayout(variants),visible,
+    return {id:Number(node.dataset.converterLogo),available,visible,
       width:Math.round(box.width),height:Math.round(box.height),ratio:intrinsicHeight ? intrinsicWidth/intrinsicHeight : 0};
   });
 }

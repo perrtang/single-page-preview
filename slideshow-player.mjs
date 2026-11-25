@@ -324,10 +324,15 @@ function playSlideshows() {
 function locatePreviewLogo() {
   const targets = document.querySelectorAll('[data-converter-preview-logo]');
   if (!targets.length) return;
-  function locate() {
+  const openPanel = [...targets].some(node => node.closest('[data-converter-nav-dialog]:not([inert])'));
+  function locate(deadline) {
     const logo = [...targets].find(node => node.getClientRects().length &&
       node.checkVisibility({opacityProperty:true,visibilityProperty:true}));
-    if (!logo) return;
+    if (!logo) {
+      // An opening drawer can remain hidden until its first transition frame.
+      if (openPanel && performance.now() < deadline) requestAnimationFrame(() => locate(deadline));
+      return;
+    }
     logo.scrollIntoView({block:'center',inline:'nearest',behavior:'instant',container:'nearest'});
     const rect = logo.getBoundingClientRect();
     if (rect.top < 0 || rect.bottom > innerHeight) {
@@ -355,8 +360,9 @@ function locatePreviewLogo() {
         frame.remove();
       });
   }
-  if (document.readyState === 'complete') locate();
-  else addEventListener('load',locate,{once:true});
+  const start = () => locate(performance.now()+1000);
+  if (document.readyState === 'complete') start();
+  else addEventListener('load',start,{once:true});
 }
 
 export const playerSource = [playSlideshows,enableMobileNavigation,enableCarouselTracks,enableMarquees,locatePreviewLogo]
