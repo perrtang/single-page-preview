@@ -328,20 +328,32 @@ function locatePreviewLogo() {
     const logo = [...targets].find(node => node.getClientRects().length &&
       node.checkVisibility({opacityProperty:true,visibilityProperty:true}));
     if (!logo) return;
-    logo.setAttribute('data-converter-located-logo','');
     logo.scrollIntoView({block:'center',inline:'nearest',behavior:'instant',container:'nearest'});
     const rect = logo.getBoundingClientRect();
     if (rect.top < 0 || rect.bottom > innerHeight) {
       scrollBy({top:(rect.top + rect.bottom - innerHeight) / 2,behavior:'instant'});
     }
-    setTimeout(() => {
-      const clear = () => logo.removeAttribute('data-converter-located-logo');
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) clear();
-      else {
-        logo.setAttribute('data-converter-located-logo','fading');
-        setTimeout(clear,220);
-      }
-    },2000);
+    if (logo.dataset.converterPreviewLogo !== 'highlight') return;
+
+    const frame = document.createElement('div');
+    frame.dataset.converterLogoOutline = '';
+    frame.setAttribute('aria-hidden','true');
+    document.documentElement.append(frame);
+    let tracking;
+    function positionFrame() {
+      const box = logo.getBoundingClientRect();
+      frame.style.transform = 'translate('+box.left+'px,'+box.top+'px)';
+      frame.style.width = box.width+'px';
+      frame.style.height = box.height+'px';
+      tracking = requestAnimationFrame(positionFrame);
+    }
+    positionFrame();
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 200;
+    frame.animate([{opacity:1},{opacity:0}],{delay:2000,duration,easing:'ease-out',fill:'forwards'})
+      .finished.then(() => {
+        cancelAnimationFrame(tracking);
+        frame.remove();
+      });
   }
   if (document.readyState === 'complete') locate();
   else addEventListener('load',locate,{once:true});

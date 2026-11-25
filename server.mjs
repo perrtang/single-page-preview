@@ -156,7 +156,8 @@ const server = http.createServer(async (req,res) => {
       if (path === project.entry) {
         const html = url.searchParams.has('initial') && project.initialMarkup
           ? project.initialMarkup
-          : previewMarkup(project,url.searchParams.get('logoFocus'),url.searchParams.get('slideFocus'));
+          : previewMarkup(project,url.searchParams.get('logoFocus'),url.searchParams.get('slideFocus'),
+            url.searchParams.has('highlightLogo'));
         return send(res,200,html,{...isolated,'Content-Type':types['.html']});
       }
       const file = project.files.get(path);

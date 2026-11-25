@@ -654,7 +654,7 @@ export const defaultLogoSize = {mobile:28,tablet:32,desktop:32};
 export const logoDevices = Object.keys(defaultLogoSize);
 export const logoSizeLimits = {min:12,mobile:64,tablet:128,desktop:128,offset:100,width:{mobile:176,tablet:360,desktop:360}};
 
-export function previewMarkup(project, focusedLogo, focusedSlide) {
+export function previewMarkup(project, focusedLogo, focusedSlide, highlightLogo) {
   const focus = /^(0|[1-9]\d{0,2})-(0|[1-9]\d{0,2})$/.exec(focusedSlide || '');
   const document = project.dom.window.document;
   const gallery = focus && document.querySelector('[data-converter-slideshow-id="'+focus[1]+'"]');
@@ -668,7 +668,7 @@ export function previewMarkup(project, focusedLogo, focusedSlide) {
   }
   try {
     if (!logo) return project.dom.serialize();
-    return focusedLogoMarkup(project.dom,logo);
+    return focusedLogoMarkup(project.dom,logo,highlightLogo);
   } finally {
     if (targetSlide && targetSlide !== open) {
       targetSlide.open = false;
@@ -677,21 +677,19 @@ export function previewMarkup(project, focusedLogo, focusedSlide) {
   }
 }
 
-function focusedLogoMarkup(dom,logo) {
+function focusedLogoMarkup(dom,logo,highlightLogo) {
   const document = dom.window.document;
   const focusedLogo = logo.id;
   const target = '[data-converter-logo="'+focusedLogo+'"]:not([data-converter-logo-hidden],[data-converter-logo-part])';
   const slot = '[data-converter-logo-variants]:has(> '+target+')';
   const variantStyle = logo.hasVariants ? slot+' > [data-converter-logo]:not('+target+') {opacity:0!important;}'+
     slot+' > '+target+' {display:block!important;visibility:visible!important;opacity:1!important;}' : '';
-  const style = '<style>'+variantStyle+
-    '[data-converter-located-logo] {outline:3px solid #ef4444!important;outline-offset:3px!important;'+
-    'box-shadow:0 0 0 3px #171717,0 0 0 7px #171717!important;}'+
-    '[data-converter-located-logo="fading"] {outline-color:transparent!important;box-shadow:none!important;'+
-    'transition:outline-color 200ms ease-out,box-shadow 200ms ease-out!important;}</style>';
+  const highlightStyle = highlightLogo ? '[data-converter-logo-outline] {all:initial;display:block;position:fixed;top:0;left:0;'+
+    'pointer-events:none;z-index:2147483647;outline:3px solid #ef4444;outline-offset:3px;}' : '';
+  const style = '<style>'+variantStyle+highlightStyle+'</style>';
   // The saved page DOM is shared by preview and export. Mark only the returned preview.
   const targets = document.querySelectorAll(target);
-  for (const node of targets) node.setAttribute('data-converter-preview-logo','');
+  for (const node of targets) node.setAttribute('data-converter-preview-logo',highlightLogo ? 'highlight' : '');
   try {
     const preview = dom.serialize().replace(/<\/head>/i,()=>style+'</head>');
     return document.querySelector('script') ? preview :
