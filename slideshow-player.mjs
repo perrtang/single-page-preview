@@ -334,6 +334,14 @@ function locatePreviewLogo() {
     if (rect.top < 0 || rect.bottom > innerHeight) {
       scrollBy({top:(rect.top + rect.bottom - innerHeight) / 2,behavior:'instant'});
     }
+    setTimeout(() => {
+      const clear = () => logo.removeAttribute('data-converter-located-logo');
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) clear();
+      else {
+        logo.setAttribute('data-converter-located-logo','fading');
+        setTimeout(clear,220);
+      }
+    },2000);
   }
   if (document.readyState === 'complete') locate();
   else addEventListener('load',locate,{once:true});

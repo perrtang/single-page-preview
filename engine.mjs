@@ -685,8 +685,10 @@ function focusedLogoMarkup(dom,logo) {
   const variantStyle = logo.hasVariants ? slot+' > [data-converter-logo]:not('+target+') {opacity:0!important;}'+
     slot+' > '+target+' {display:block!important;visibility:visible!important;opacity:1!important;}' : '';
   const style = '<style>'+variantStyle+
-    '[data-converter-located-logo] {outline:3px solid #facc15!important;outline-offset:3px!important;'+
-    'box-shadow:0 0 0 3px #171717,0 0 0 7px #171717!important;}</style>';
+    '[data-converter-located-logo] {outline:3px solid #ef4444!important;outline-offset:3px!important;'+
+    'box-shadow:0 0 0 3px #171717,0 0 0 7px #171717!important;}'+
+    '[data-converter-located-logo="fading"] {outline-color:transparent!important;box-shadow:none!important;'+
+    'transition:outline-color 200ms ease-out,box-shadow 200ms ease-out!important;}</style>';
   // The saved page DOM is shared by preview and export. Mark only the returned preview.
   const targets = document.querySelectorAll(target);
   for (const node of targets) node.setAttribute('data-converter-preview-logo','');
