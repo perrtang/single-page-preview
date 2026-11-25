@@ -611,6 +611,38 @@ export function setLogoVisibility(dom,id,visible) {
   }
 }
 
+export function restoreLogo(project,id) {
+  const originalPage = new JSDOM(project.initialMarkup);
+  try {
+    const current = logoNodes(project.dom,id);
+    const original = logoNodes(originalPage,id);
+    const document = project.dom.window.document;
+    const slots = new Set();
+    current.forEach((node,index) => {
+      const originalNode = original[index];
+      const parent = node.parentElement;
+      if (parent.hasAttribute('data-converter-logo-slot')) slots.add(parent);
+      if (node.hasAttribute('data-converter-replaced-logo')) {
+        const picture = node.closest('picture');
+        if (picture && !picture.querySelector('source')) {
+          const sources = originalNode.closest('picture')?.querySelectorAll('source') || [];
+          for (const source of sources) node.before(document.importNode(source,true));
+        }
+        if (originalNode.localName !== 'img' && parent.localName === 'span' && parent.children.length === 1 &&
+            node.closest('nav,[role=navigation]')) {
+          for (const property of ['width','max-width']) {
+            const style = originalNode.parentElement.style;
+            parent.style.setProperty(property,style.getPropertyValue(property),style.getPropertyPriority(property));
+          }
+        }
+      }
+      node.replaceWith(document.importNode(originalNode,true));
+    });
+    for (const slot of slots) updateLogoSlot(slot);
+    project.logoSizes.delete(id);
+  } finally { originalPage.window.close(); }
+}
+
 export function restoreParsedPage(project) {
   const restored = new JSDOM(project.initialMarkup);
   project.dom.window.close();
@@ -740,12 +772,20 @@ export function replaceLogo(dom, id, url, size = defaultLogoSize) {
       slots.add(image.parentElement);
     }
   }
-  for (const slot of slots) {
-    slot.dataset.converterLogoSlot = '';
-    for (const device of logoDevices) {
+  for (const slot of slots) updateLogoSlot(slot);
+}
+
+function updateLogoSlot(slot) {
+  const sized = logoDevices.some(device => slot.querySelector(':scope > [data-converter-size-'+device+']'));
+  slot.toggleAttribute('data-converter-logo-slot',sized);
+  if (!sized) slot.removeAttribute('data-converter-mobile-logo');
+  for (const device of logoDevices) {
+    const property = '--converter-logo-slot-'+device;
+    if (!sized) slot.style.removeProperty(property);
+    else {
       const images = [...slot.querySelectorAll(':scope > [data-converter-size-'+device+']')];
       const height = Math.max(0,...images.map(image => parseInt(image.style.getPropertyValue('--converter-logo-'+device),10)));
-      slot.style.setProperty('--converter-logo-slot-'+device,height+'px');
+      slot.style.setProperty(property,height+'px');
     }
   }
 }

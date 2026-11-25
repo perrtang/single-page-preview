@@ -3,6 +3,17 @@ import { parse } from 'parse5';
 
 export const fontPath = /\.(?:woff2?|ttf|otf)$/i;
 
+export function prioritizeIconFonts(sources) {
+  const icons = [];
+  const others = [];
+  for (const source of sources) {
+    const path = new URL(source).pathname;
+    const icon = /\/(?:font-awesome|webfonts|eicons|iconfonts?)\/|\/(?:fa-(?:brands|solid|regular|v4compatibility)-?|eleganticons|eicons|dashicons|icomoon|materialicons)/i.test(path);
+    (icon ? icons : others).push(source);
+  }
+  return [...icons,...others];
+}
+
 export function archivePageURL(bytes) {
   const marker = /<!--\s*saved from url=\(\d+\)(https:\/\/[^\r\n]+?)\s+-->/i.exec(Buffer.from(bytes.subarray(0,4096)).toString('utf8'));
   if (!marker) return null;
@@ -33,7 +44,7 @@ export function stylesheetOrigins(html,pageURL) {
   return (id,localPath) => {
     const name = posix.basename(localPath);
     // Chrome may add (1), (2), … when stylesheet basenames collide.
-    const originalName = name.replace(/\(\d+\)(?=\.[^.]+$|$)/,'');
+    const originalName = name.replace(/\(\d+\)(?=(?:\.[^.]+)*$)/,'');
     const tagged = id && byId.get(id);
     if (tagged && decodeURIComponent(posix.basename(tagged.pathname))===originalName) return tagged;
     return byName.get(name) || byName.get(originalName) || null;

@@ -713,6 +713,7 @@ function renderLogoControls(report) {
         if (current?.id === project) {
           enabled.forEach(control => { control.disabled = false; });
           syncNavActions();
+          syncLogoRestore();
           bulk.value = '';
         }
       }
@@ -748,6 +749,12 @@ function renderLogoControls(report) {
       tooltip.textContent = tips[Number(pressed)];
     }
     return {wrapper,button,setPressed};
+  }
+
+  const logoChanged = logo => Boolean(logo.filename || !logo.visible || Object.keys(logo.size).length);
+  function syncLogoRestore() {
+    const button = $('logo-options').querySelector('.logo-reset');
+    if (button && selected) button.disabled = !logoChanged(selected);
   }
 
   function showPosition() {
@@ -787,7 +794,21 @@ function renderLogoControls(report) {
         message.textContent = logo.label+(result.visible ? '已顯示。' : '已隱藏。');
       });
     };
-    fileRow.append(pick,picker,filename);
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'logo-reset';
+    reset.textContent = '復原此 Logo';
+    reset.disabled = !logoChanged(logo);
+    reset.onclick = () => {
+      flushSizes();
+      updateLogo(() => post('/logo/'+project,{logo:logo.id,reset:true}),'正在復原 Logo…',() => {
+        Object.assign(logo,{filename:'',ratio:0,visible:true,size:{}});
+        showPosition();
+        $('logo-options').querySelector('button')?.focus();
+        message.textContent = '已復原此 Logo。';
+      });
+    };
+    fileRow.append(pick,picker,reset,filename);
     panel.append(fileRow);
     const measure = metrics(logo);
     const device = deviceAtWidth(selectedWidth);

@@ -5,9 +5,9 @@ import { posix, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { browserImages } from './browser-archive.mjs';
 import { downloadImages, downloadFonts, readOriginPage } from './remote-images.mjs';
-import { archivePageURL, fontPath, stylesheetOrigins } from './font-assets.mjs';
+import { archivePageURL, fontPath, prioritizeIconFonts, stylesheetOrigins } from './font-assets.mjs';
 import { identifyNavigation, resetNavigation, updateNavigation } from './navigation-editor.mjs';
-import { prepare, repair, measurePreviewLogos, replaceLogo, setLogoVisibility, restoreParsedPage, previewMarkup, defaultLogoSize, logoDevices, logoSizeLimits, policy } from './engine.mjs';
+import { prepare, repair, measurePreviewLogos, replaceLogo, setLogoVisibility, restoreLogo, restoreParsedPage, previewMarkup, defaultLogoSize, logoDevices, logoSizeLimits, policy } from './engine.mjs';
 import { zipSync, unzipSync } from 'fflate';
 import { tokenize, isTokenURL, isTokenFunction, isTokenString, isTokenCloseParen, isTokenWhitespace }
   from '@csstools/css-tokenizer';
@@ -317,6 +317,9 @@ const server = http.createServer(async (req,res) => {
         };
         const preparePage = () => {
           convertedStyles.clear();
+          // Rebuild the queue in stylesheet order once the original URLs are known.
+          // Inline font subsets otherwise fill the bounded queue before icon fonts.
+          pendingFonts.clear();
           unresolvedFonts.clear();
           return prepare(files.get(entry),hasAsset,imageAsset,stylesheetAsset,css=>rewrite(css,base,sourcePage));
         };
@@ -334,7 +337,7 @@ const server = http.createServer(async (req,res) => {
         let remaining = maxBytes-[...new Set(files.values())].reduce((total,file) => total+file.length,0);
         if (pendingFonts.size) {
           reportProgress(35,'補齊字型');
-          fontDownloads = await downloadFonts(pendingFonts,remaining,async (source,{extension,data})=>{
+          fontDownloads = await downloadFonts(prioritizeIconFonts(pendingFonts),remaining,async (source,{extension,data})=>{
             const path = 'downloaded-fonts/'+randomUUID()+extension;
             files.set(path,data);
             savedFonts.set(source,localURL(path));
@@ -451,7 +454,15 @@ const server = http.createServer(async (req,res) => {
       return json(res,200,{preview:pageURL(id,project.entry)});
     }
     if (action === 'logo' && project && !project.processing) {
-      const {logo,data,visible,size = {}} = await body(req);
+      const {logo,data,visible,reset,size = {}} = await body(req);
+      if (reset === true) {
+        const logoId = Number(logo);
+        if (!project.logos.some(entry => entry.id === logoId) || !['number','string'].includes(typeof logo) || logo === '') {
+          throw Error('找不到這個 Logo。');
+        }
+        restoreLogo(project,logoId);
+        return json(res,200,{preview:pageURL(id,project.entry)});
+      }
       if (typeof visible === 'boolean') {
         setLogoVisibility(project.dom,logo,visible);
         return json(res,200,{preview:pageURL(id,project.entry),visible});
